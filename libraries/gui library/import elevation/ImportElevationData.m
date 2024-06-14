@@ -129,11 +129,6 @@ if strcmp(ext,'.xyz')
     % Convert cell array to matrix
     xyz = cell2mat(xyz);
     
-    % Convert coordinates
-    if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon) % Younghun added
-        [xyz(:,1),xyz(:,2)] = Geo2Meters(xyz(:,1),xyz(:,2),PTS.cpplon,PTS.cpplat);
-    end
-    
     msg = 'Creating elevation interpolant function...';
     progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     xyzFun = scatteredInterpolant(xyz(:,1),xyz(:,2),xyz(:,3),'linear','nearest');
@@ -239,13 +234,6 @@ if strcmp(ext,'.asc')
         return
     end
     
-    % Convert coordinates
-    if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
-        msg = 'Converting to cartesian coordinate system...';
-        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
-        [x,y] = Geo2Meters(x,y,PTS.cpplon,PTS.cpplat);
-    end
-    
     %-------------------------------------------------------------------------
     % Generate scattered interpolant function for bathymetry
     %--------------------------------------------------------------------------
@@ -292,12 +280,11 @@ if any(strcmpi(ext,{'.tiff','.tif'}))
 end
 
 xyzFun.Values = -xyzFun.Values;
-xyzFun = CoordinateConversion(app,xyzFun,'auto',PTS.cpplon,PTS.cpplat);
+% Convert coordinates if needed
+if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
+    xyzFun = CoordinateConversion(app,xyzFun,'forward',PTS.cpplon,PTS.cpplat);
+end
 app.xyzFun = xyzFun;
-
-% Update GUI data
-% guidata(fig,gui);
-pause(.01)
 
 % Replace data in file by user request
 if strcmp(choice,'Replace') && ~isempty(app.FilePath)
