@@ -69,12 +69,13 @@ end
 %--------------------------------------------------------------------------
 % Get the file name from the user
 %--------------------------------------------------------------------------
-msg = 'Select a (.xyz) or (.asc) file....';
+msg = 'Select an elevation file....';
 progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
-
+f_dummy = figure('Position',[-100 -100 0 0]); % Create a dummy figure so that uigetfile doesn't minimize our GUI
 [file, path] = uigetfile({'*.xyz;*.asc;*.tiff;*.tif','Elevation Files (*.xyz,*.asc,*.tiff,*.tif)'},...
     'Select a file',cd);
-
+delete(f_dummy); % Delete the dummy figure
+figure(app.UIFigure); % Put focus on ADMESH app
 %--------------------------------------------------------------------------
 % Did the user make a selection?
 %--------------------------------------------------------------------------

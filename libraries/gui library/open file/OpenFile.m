@@ -27,7 +27,7 @@ function OpenFile(app)
 progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
     'Select a file...','Indeterminate','on');
 % Ask the user to select a file
-f_dummy = warndlg('Select a file...','ADMESH'); %create a dummy figure so that uigetfile doesn't minimize our GUI
+f_dummy = figure('Position',[-100 -100 0 0]); %create a dummy figure so that uigetfile doesn't minimize our GUI
 [filename, pathname] = uigetfile(...
     {'*.mat;*.14;*.grd;*.2dm;*.shp','Files (*.mat,*.14,*.grd,*.2dm,*.shp)'},'Select a file');
 delete(f_dummy); % delete the dummy figure
