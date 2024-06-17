@@ -83,6 +83,7 @@ end
 
 Settings.DummyConstraint = app.DummyConstraint;
 Settings.SmoothingRMSE = app.SmoothingRMSEEditField.Value;
+Settings.MinDrainageArea = app.MinDrainageArea;
 
 %------------------------------------------------------------------------------
 % Save Advanced Settings

@@ -121,9 +121,9 @@ switch lower(status)
                 % Plot points
                 eH = patch(...
                     'parent',app.UIAxes,...
-                    'xdata',[x;x],...
-                    'ydata',[y;y],...
-                    'cdata',[z;z],...
+                    'xdata',x,...
+                    'ydata',y,...
+                    'cdata',z,...
                     'facecolor','none',...
                     'edgecolor','none',...
                     'marker','sq',...
@@ -183,6 +183,7 @@ switch lower(status)
                 
             end
             
+            drawnow;
             close(progdlg);
             
         elseif ishandle(h2) == 1
@@ -229,6 +230,7 @@ switch lower(status)
         end
 
         colorbar(app.UIAxes,'Tag','Mesh');
+        drawnow;
 
     case 'off'
         
@@ -253,6 +255,8 @@ switch lower(status)
         end
 
         colorbar(app.UIAxes,'off');
+        drawnow;
+
 end
 
     function y = landcolor(n)

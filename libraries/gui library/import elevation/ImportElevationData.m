@@ -240,14 +240,22 @@ if strcmp(ext,'.asc')
     msg = 'Creating an interpolant function for the elevation data set...';
     progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
-    switch choice
-        case 'In-paint NaNs'
-            xyzFun = griddedInterpolant(x',y',z','linear','nearest');
-        case 'Ignore NaNs'
-            I = ~isnan(z);
-            xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
-        otherwise
-            xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+    if any(isnan(Z(:)))
+        msg = 'NaNs are found in the elevation data. How do you proceed?';
+        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
+
+        switch choice
+            case 'In-paint NaNs'
+                xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+            case 'Ignore NaNs'
+                I = ~isnan(z);
+                xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
+            otherwise
+                xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+        end
+    else
+        xyzFun = griddedInterpolant(x',y',z','linear','nearest');
     end
         
 end
@@ -260,20 +268,39 @@ if any(strcmpi(ext,{'.tiff','.tif'}))
     Z = imread([path,file]);
     Z = double(Z);
     Z = flipud(Z);
-    Z(Z < -1e20) = nan;
-    Z(Z==0) = nan;
+    Z(Z == -999999) = nan;
     gtinfo = geotiffinfo([path,file]);
     
     ax = gtinfo.BoundingBox;
     x = linspace(ax(1,1),ax(2,1),size(Z,2));
     y = linspace(ax(1,2),ax(2,2),size(Z,1));
     [X,Y] = meshgrid(x,y);
-    
+
+    %-------------------------------------------------------------------------
+    % Generate interpolant function for bathymetry
+    %--------------------------------------------------------------------------
     msg = 'Creating an interpolant function for the elevation data set...';
     progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
-    I = ~isnan(Z);
-    xyzFun = scatteredInterpolant(X(I),Y(I),Z(I),'nearest','nearest');
     
+    if any(isnan(Z(:)))
+        msg = 'NaNs are found in the elevation data. How do you proceed?';
+        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
+
+        switch choice
+            case 'In-paint NaNs'
+                xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+            case 'Ignore NaNs'
+                I = ~isnan(z);
+                xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
+            otherwise
+                xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+        end
+    else
+        xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+    end
+
+    path = strrep(path,pwd,'.'); % Convert to relative path
     ElevationDataFilename = [path,file];
     app.ElevationDataFilename = ElevationDataFilename;
 

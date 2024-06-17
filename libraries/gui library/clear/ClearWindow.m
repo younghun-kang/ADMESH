@@ -98,6 +98,7 @@ app.MinEQ              = 0.3;  % Minimum element quality
 app.xLimits            = [0 1];
 app.yLimits            = [0 1];
 app.per                = 0;    % Percent offset
+app.ElevationDataFilename = [];
 
 drawnow;
 
