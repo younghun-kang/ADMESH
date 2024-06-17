@@ -53,7 +53,7 @@ if nargin == 1
         varargout{2} = cpplon;
         varargout{3} = cpplat;
 
-    elseif isfield(varargin{1},'Points') || isprop(varargin{1},'Points') % MESH or xyzFun
+    elseif isfield(varargin{1},'Points') % MESH
 
         MESH = varargin{1};
 
@@ -74,6 +74,47 @@ if nargin == 1
         varargout{1} = MESH;
         varargout{2} = cpplon;
         varargout{3} = cpplat;
+
+    elseif isa(varargin{1},'scatteredInterpolant') % xyzFun (scatteredInterpolant)
+
+        xyzFun = varargin{1};
+
+        lon = xyzFun.Points(:,1);
+        lat = xyzFun.Points(:,2);
+
+        % Radius of earth
+        r = 6378206;
+
+        cpplon = (pi/180)*(lon(1)+1.2345678);
+        cpplat = (pi/180)*(lat(1)+1.2345678);
+
+        x = r.*((pi/180).*lon - cpplon).*cos(cpplat);
+        y = r.*((pi/180).*lat);
+
+        xyzFun.Points(:,[1 2]) = [x,y];
+
+        varargout{1} = xyzFun;
+
+    elseif isa(varargin{1},'griddedInterpolant') % xyzFun (griddedInterpolant)
+
+        xyzFun = varargin{1};
+
+        lon = xyzFun.GridVectors{1};
+        lat = xyzFun.GridVectors{2};
+
+        % Radius of earth
+        r = 6378206;
+
+        cpplon = (pi/180)*(lon(1)+1.2345678);
+        cpplat = (pi/180)*(lat(1)+1.2345678);
+
+        x = r.*((pi/180).*lon - cpplon).*cos(cpplat);
+        y = r.*((pi/180).*lat);
+
+        xyzFun.GridVectors{1} = x;
+        xyzFun.GridVectors{2} = y;
+
+        varargout{1} = xyzFun;
 
     end
     
@@ -139,7 +180,7 @@ elseif nargin == 3
 
         varargout{1} = PTS;
 
-    elseif isfield(varargin{1},'Points') || isprop(varargin{1},'Points') % MESH or xyzFun
+    elseif isfield(varargin{1},'Points') % MESH
 
         MESH = varargin{1};
 
@@ -155,6 +196,41 @@ elseif nargin == 3
         MESH.Points(:,[1 2]) = [x,y];
 
         varargout{1} = MESH;
+
+    elseif isa(varargin{1},'scatteredInterpolant') % xyzFun (scatteredInterpolant)
+
+        xyzFun = varargin{1};
+
+        lon = xyzFun.Points(:,1);
+        lat = xyzFun.Points(:,2);
+
+        % Radius of earth
+        r = 6378206;
+
+        x = r.*((pi/180).*lon - cpplon).*cos(cpplat);
+        y = r.*((pi/180).*lat);
+
+        xyzFun.Points(:,[1 2]) = [x,y];
+
+        varargout{1} = xyzFun;
+
+    elseif isa(varargin{1},'griddedInterpolant') % xyzFun (griddedInterpolant)
+
+        xyzFun = varargin{1};
+
+        lon = xyzFun.GridVectors{1};
+        lat = xyzFun.GridVectors{2};
+
+        % Radius of earth
+        r = 6378206;
+
+        x = r.*((pi/180).*lon - cpplon).*cos(cpplat);
+        y = r.*((pi/180).*lat);
+
+        xyzFun.GridVectors{1} = x;
+        xyzFun.GridVectors{2} = y;
+
+        varargout{1} = xyzFun;
 
     end
 
