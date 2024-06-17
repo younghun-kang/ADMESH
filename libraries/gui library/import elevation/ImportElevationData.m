@@ -242,10 +242,10 @@ if strcmp(ext,'.asc')
 
     if any(isnan(Z(:)))
         msg = 'NaNs are found in the elevation data. How do you proceed?';
-        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        choice2 = uiconfirm(app.UIFigure,msg,'ADMESH',...
             'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
 
-        switch choice
+        switch choice2
             case 'In-paint NaNs'
                 xyzFun = griddedInterpolant(x',y',z','linear','nearest');
             case 'Ignore NaNs'
@@ -284,10 +284,10 @@ if any(strcmpi(ext,{'.tiff','.tif'}))
     
     if any(isnan(Z(:)))
         msg = 'NaNs are found in the elevation data. How do you proceed?';
-        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        choice2 = uiconfirm(app.UIFigure,msg,'ADMESH',...
             'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
 
-        switch choice
+        switch choice2
             case 'In-paint NaNs'
                 xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
             case 'Ignore NaNs'
