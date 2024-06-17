@@ -1,14 +1,32 @@
-function [Constraints,pgon_old,MA_1D_mainstream,MA_1D_mainstreamLand,W2D_boundaryID] = ExtractInternalConstraints(ShorelineFile,A_min,dx,delta_cw,delta_lfs,delta_A,pruning_rho,pruning_theta,length_min,Nx,Ny)
+function ExtractInternalConstraints(app)
 
-deg2m = deg2km(1)*1e3;
-Scale = deg2m;
-%--------------------------------------------------------------------------
-% Load example file (variable "Points")
-%--------------------------------------------------------------------------
-Shoreline = shaperead(ShorelineFile);
+msg = 'Extracting internal constraints...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
-for i = 1 : length(Shoreline)
-    Shoreline(i).np = length(Shoreline(i).X);
+t = tic;
+%% ========================================================================
+% Parse input arguments
+%==========================================================================
+A_min = app.MinAreaEditField.Value;
+dx = app.BackgroundGridResolmEditField.Value;
+delta_cw = app.MaxChannelWidthmEditField.Value;
+delta_lfs = delta_cw / 2;
+delta_Area = A_min;
+delta_A = delta_Area/dx^2;
+pruning_rho = app.PruningRhoEditField.Value * delta_cw;
+pruning_theta = app.PruningThetaEditField.Value * pi;
+length_min = app.MinLengthmEditField.Value;
+Nx = app.NxDomainDecompEditField.Value;
+Ny = app.NyDomainDecompEditField.Value;
+
+%% ========================================================================
+% Check input parameters
+%==========================================================================
+[status,msg] = CheckParamsExtractChannelsWaterApp(app);
+if ~status
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+    return;
 end
 
 %% ========================================================================
@@ -17,19 +35,7 @@ end
 %%========================================================================
 % Set boundary points from shorelines and set up parameters
 %==========================================================================
-%--------------------------------------------------------------------------
-% Construct polyshape with filtering small islands
-%--------------------------------------------------------------------------
-Shoreline1 = struct2table(Shoreline);
-x = Shoreline1.X(:);
-y = Shoreline1.Y(:);
-x = cellfun(@(x) x(~isnan(x)),x,'UniformOutput',0);
-y = cellfun(@(x) x(~isnan(x)),y,'UniformOutput',0);
-A = cellfun(@(x,y) polyarea(x,y),x,y,'UniformOutput',0);
-A = cell2mat(A);
-I = A > A_min;
-pgon = polyshape(x(I),y(I));
-pgon_removed = polyshape(x(~I),y(~I));
+pgon = app.pgon;
 
 %--------------------------------------------------------------------------
 % Load polyshape data (if desired)
@@ -55,48 +61,47 @@ end
 %% ========================================================================
 % Decompose domain
 %==========================================================================
-[dd_pgons,dd_Boxes,dd_ID,xg,yg] = DecomposePolyshape(pgon,Nx,Ny,dx,delta_cw*4);
+[dd_pgons,dd_Boxes,dd_ID,xg,yg] = DecomposePolyshape(pgon,Nx,Ny,dx,delta_cw*4,app.UIFigure);
 
 %% ========================================================================
 % Compute VDT in DDM
 %==========================================================================
-[Vxg,Vyg,MaskW,MaskL] = ComputeVDT_DDM(pgon,dd_ID,dd_Boxes,xg,yg,dx);
+[Vxg,Vyg,MaskW,MaskL] = ComputeVDT_DDM(pgon,dd_ID,dd_Boxes,xg,yg,dx,app.UIFigure);
 
 
 %% ========================================================================
 % Compute Medial Axis
 %==========================================================================
-MaskMA_raw = ComputeMA_DDM(Vxg,Vyg,dd_ID);
+MaskMA_raw = ComputeMA_DDM(Vxg,Vyg,dd_ID,app.UIFigure);
 
 %% ========================================================================
 % Thinning MA
 %%=========================================================================
-MaskMA_thinned = ThinningMA(MaskMA_raw);
-fprintf('Thinning is done\n');
+MaskMA_thinned = ThinningMA(MaskMA_raw,app.UIFigure);
 
 %% ========================================================================
 % Construct branches
 %==========================================================================
-MA_branch = ConstructMedialAxisBranch(MaskMA_thinned);
+MA_branch = ConstructMedialAxisBranch(MaskMA_thinned,app.UIFigure);
 MA_branch = RemoveJointDuplicates(MA_branch);
 MA = MA_branch;
-fprintf('Branch construction is done\n');
 
 %% ========================================================================
 % Pruning corners
 %==========================================================================
-MA_pruned = SkeletonPruning_Choi_level1branch_v2(Vxg,Vyg,MA,pruning_rho,pruning_theta,dx);
-fprintf('Pruning corner branches is done\n');
+MA_pruned = SkeletonPruning_Choi_level1branch_v2(Vxg,Vyg,MA,pruning_rho,pruning_theta,dx,app.UIFigure);
 
 %% ========================================================================
 % Compute distance map to medial axis
 %==========================================================================
 MA = MA_pruned;
-D2MA = DistanceToMA(MA,{MaskL,MaskW},dd_ID,dx);
+D2MA = DistanceToMA(MA,{MaskL,MaskW},dd_ID,dx,app.UIFigure);
 
 %% ========================================================================
 % Compute lfs
 %==========================================================================
+msg = 'Computing channel width function...';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 lfs = sparse(size(MaskW,1),size(MaskW,2));
 for iDD = 1 : size(dd_ID,1)
     I = dd_ID{iDD,1};
@@ -104,9 +109,10 @@ for iDD = 1 : size(dd_ID,1)
   
     lfs(I,J) = sqrt(Vxg(I,J).^2 + Vyg(I,J).^2) + abs(D2MA(I,J));
     
-    fprintf('Compute width function (%d/%d)\n',iDD,size(dd_ID,1));
+    progdlg.Indeterminate = 'off';
+    progdlg.Value = iDD/size(dd_ID,1);
 end
-fprintf('Computing local feature size is done\n');
+close(progdlg);
 clear Dg Vxg Vyg;
 % clear D2MA;
 %% ========================================================================
@@ -119,7 +125,7 @@ clear Dg Vxg Vyg;
 % Fill 2D mask regions
 %==========================================================================
 delta_filling = delta_lfs*sqrt(2);
-[Mask2DCell,Mask1DCell] = FillMask2D({Water2D,Land2D},{Water1D,Land1D},MA_pruned,lfs,delta_filling,delta_A,xg,yg,XY_b,dx);
+[Mask2DCell,Mask1DCell] = FillMask2D({Water2D,Land2D},{Water1D,Land1D},MA_pruned,lfs,delta_filling,delta_A,xg,yg,XY_b,dx,app.UIFigure);
 
 Water2D = Mask2DCell{1};
 Water1D = Mask1DCell{1};
@@ -225,13 +231,13 @@ K = BranchNodesID(L1DtoW2D(BranchNodesID));
 L1DtoW2Dskel = false(size(L1DtoW2D));
 L1DtoW2Dskel(K) = 1;
 
-MA_LandBarrier = ConstructMedialAxisBranch(L1DtoW2Dskel);
+MA_LandBarrier = ConstructMedialAxisBranch(L1DtoW2Dskel,app.UIFigure);
 MA_LandBarrier = RemoveJointDuplicates(MA_LandBarrier);
 
 %% ========================================================================
 % Patch Water 2D mask with L1DtoW2D mask
 %==========================================================================
-L1DtoW2D_XY = Mask2XY(L1DtoW2D,xg,yg);
+L1DtoW2D_XY = Mask2XY(L1DtoW2D,xg,yg,app.UIFigure);
 if ~isempty(L1DtoW2D_XY)
 pgon_x = cellfun(@(x) x(:,1),L1DtoW2D_XY,'UniformOutput',0);
 pgon_y = cellfun(@(x) x(:,2),L1DtoW2D_XY,'UniformOutput',0);
@@ -281,48 +287,47 @@ end
 
 
 %% Decompose domain
-[dd_pgons,dd_Boxes,dd_ID,xg,yg] = DecomposePolyshape(pgon,Nx,Ny,dx,delta_cw*4);
+[dd_pgons,dd_Boxes,dd_ID,xg,yg] = DecomposePolyshape(pgon,Nx,Ny,dx,delta_cw*4,app.UIFigure);
 
 %% ========================================================================
 % Compute VDT in DDM
 %==========================================================================
-[Vxg,Vyg,MaskW,MaskL] = ComputeVDT_DDM(pgon,dd_ID,dd_Boxes,xg,yg,dx);
+[Vxg,Vyg,MaskW,MaskL] = ComputeVDT_DDM(pgon,dd_ID,dd_Boxes,xg,yg,dx,app.UIFigure);
 % Land mask is not required at this step
 Vxg(MaskL) = 0;
 Vyg(MaskL) = 0;
 
 %% Compute Medial Axis
-MaskMA_raw = ComputeMA_DDM(Vxg,Vyg,dd_ID);
+MaskMA_raw = ComputeMA_DDM(Vxg,Vyg,dd_ID,app.UIFigure);
 
 %% ========================================================================
 % Thinning MA
 %%=========================================================================
-MaskMA_thinned = ThinningMA(MaskMA_raw);
-fprintf('Thinning is done\n');
+MaskMA_thinned = ThinningMA(MaskMA_raw,app.UIFigure);
 
 %% ========================================================================
 % Construct branches (with redundant joints)
 %==========================================================================
-MA_branch = ConstructMedialAxisBranch(MaskMA_thinned);
+MA_branch = ConstructMedialAxisBranch(MaskMA_thinned,app.UIFigure);
 MA_branch = RemoveJointDuplicates(MA_branch);
 MA = MA_branch;
-fprintf('Branch construction is done\n');
 
 %% ========================================================================
 % Pruning corners
 %==========================================================================
-MA_pruned = SkeletonPruning_Choi_level1branch_v2(Vxg,Vyg,MA,pruning_rho,pruning_theta,dx);
-fprintf('Pruning corner branches is done\n');
+MA_pruned = SkeletonPruning_Choi_level1branch_v2(Vxg,Vyg,MA,pruning_rho,pruning_theta,dx,app.UIFigure);
 
 %% ========================================================================
 % Compute distance map to medial axis
 %==========================================================================
 MA = MA_pruned;
-D2MA = DistanceToMA(MA,{MaskW},dd_ID,dx);
+D2MA = DistanceToMA(MA,{MaskW},dd_ID,dx,app.UIFigure);
 
 %% ========================================================================
 % Compute lfs
 %==========================================================================
+msg = 'Computing channel width function...';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 lfs = sparse(size(MaskW,1),size(MaskW,2));
 for iDD = 1 : size(dd_ID,1)
     I = dd_ID{iDD,1};
@@ -330,9 +335,10 @@ for iDD = 1 : size(dd_ID,1)
   
     lfs(I,J) = sqrt(Vxg(I,J).^2 + Vyg(I,J).^2) + abs(D2MA(I,J));
 
-    fprintf('Compute lfs (%d/%d)',iDD,size(dd_ID,1));
+    progdlg.Indeterminate = 'off';
+    progdlg.Value = iDD/size(dd_ID,1);
 end
-fprintf('Computing local feature size is done\n');
+close(progdlg);
 clear Dg D2MA Vxg Vyg;
 
 %% ========================================================================
@@ -353,7 +359,7 @@ temp_MA = MA_pruned;
 temp_MA.BranchNodes = vertcat(temp_MA.BranchNodes(:),MA_LandBarrier.BranchNodes(:));
 
 delta_filling = delta_lfs*sqrt(2);
-[~,~,M1DtoM2DCell] = FillMask2D({tempW2D},{tempW1D},temp_MA,lfs,delta_filling,delta_A,xg,yg,XY_b,dx);
+[~,~,M1DtoM2DCell] = FillMask2D({tempW2D},{tempW1D},temp_MA,lfs,delta_filling,delta_A,xg,yg,XY_b,dx,app.UIFigure);
 
 M1DtoM2D = M1DtoM2DCell{1};
 
@@ -373,6 +379,8 @@ MA1D = sparse(I,J,K,size(tempW2D,1),size(tempW2D,2));
 K = tempW2D(BranchNodesID);
 MA2D = sparse(I,J,K,size(tempW2D,1),size(tempW2D,2));
 
+msg = 'Filling 2D mask regions...';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg);
 CC = bwconncomp(full(tempW1D));
 for i = 1 : CC.NumObjects
     id = CC.PixelIdxList{i};
@@ -380,7 +388,7 @@ for i = 1 : CC.NumObjects
         tempW2D(id) = 1;
         tempW1D(id) = 0;
     end
-    fprintf('Fill 2D mask regions (%d/%d)',i,CC.NumObjects);
+    progdlg.Value = i/CC.NumObjects;
 end
 
 %----------------------------------------------------------------------
@@ -402,13 +410,13 @@ Water1D = tempW1D;
 %% ========================================================================
 % Construct MA1D
 %==========================================================================
-MA_1D = ConstructMA1D(MA_pruned,Water1D,Water2D);
+MA_1D = ConstructMA1D(MA_pruned,Water1D,Water2D,app.UIFigure);
 MA_1D = RemoveJointDuplicates(MA_1D);
 
 %% ========================================================================
 % Extract Water2D mask boundary
 %==========================================================================
-[~,W2D_boundaryID] = Mask2XY(Water2D,xg,yg);
+[~,W2D_boundaryID] = Mask2XY(Water2D,xg,yg,app.UIFigure);
 
 temp_x = cellfun(@(x) xg(x(:,2)),W2D_boundaryID,'UniformOutput',0);
 temp_y = cellfun(@(x) yg(x(:,1)),W2D_boundaryID,'UniformOutput',0);
@@ -417,13 +425,13 @@ pgon_W2D = polyshape(temp_x,temp_y);
 % Connect branches to Water2D boundary
 %==========================================================================
 MA = MA_1D;
-MA_connected = ConnectMA1Dto2DArea_v2(MA,W2D_boundaryID,2);
+MA_connected = ConnectMA1Dto2DArea_v2(MA,W2D_boundaryID,2,app.UIFigure);
 MA_connected = PruneLevel1BranchByLength(dx,MA_connected,length_min,MA_connected.FlagConnected2D);
 MA_connected = RemoveJointDuplicates(MA_connected);
 
 MA = MA_LandBarrier;
 if ~isempty(MA_LandBarrier.BranchNodes)
-MA_connectedLand = ConnectMA1Dto2DArea_v2(MA,W2D_boundaryID,2);
+MA_connectedLand = ConnectMA1Dto2DArea_v2(MA,W2D_boundaryID,2,app.UIFigure);
 MA_connectedLand = PruneLevel1BranchByLength(dx,MA_connectedLand,length_min,MA_connectedLand.FlagConnected2D);
 MA_connectedLand = RemoveJointDuplicates(MA_connectedLand);
 else
@@ -434,12 +442,17 @@ end
 % Construct mainstreams
 %==========================================================================
 MA = MA_connected;
-MA_1D_mainstream = ConstructMainStream_v3(MA);
+MA_1D_mainstream = ConstructMainStream_v3(MA,app.UIFigure);
 MA_1D_mainstream = RemoveJointDuplicates(MA_1D_mainstream);
 
 MA = MA_connectedLand;
-MA_1D_mainstreamLand = ConstructMainStream_v3(MA);
+MA_1D_mainstreamLand = ConstructMainStream_v3(MA,app.UIFigure);
 MA_1D_mainstreamLand = RemoveJointDuplicates(MA_1D_mainstreamLand);
+
+%% ========================================================================
+% Compute run time
+%==========================================================================
+time_string = seconds2HrMinSec(toc(t));
 
 %% ========================================================================
 % Construct output constraints
@@ -461,11 +474,17 @@ for i = 1 : length(ConstraintsCell)
     end
 end
 
+app.Constraints          = Constraints;
+app.pgon_old             = pgon_old;
+% app.MA_1D_mainstream     = MA_1D_mainstream;
+% app.MA_1D_mainstreamLand = MA_1D_mainstreamLand;
+% app.W2D_boundaryID       = W2D_boundaryID;
 
+PlotInternalConstraints(app);
 
+CheckButtonsExtractChannelsWaterApp(app);
 
-
-
-
-
+msg = ['Run time: ',time_string];
+uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','info');
 
