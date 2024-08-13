@@ -1,0 +1,2 @@
+examples/2.[[:space:]]Extract[[:space:]]channels[[:space:]]from[[:space:]]land/Middle[[:space:]]Bosque[[:space:]]River[[:space:]]Watershed/MiddleBosqueRiverWatershed.mat filter=lfs diff=lfs merge=lfs -text
+examples/2.[[:space:]]Extract[[:space:]]channels[[:space:]]from[[:space:]]land/Walnut[[:space:]]Gulch[[:space:]]Experimental[[:space:]]Watershed/WalnutGulchExperimentalWatershed.mat filter=lfs diff=lfs merge=lfs -text
