@@ -94,27 +94,7 @@ end
 % Apply mesh constraints and concatenate with p if constraints exist.
 %--------------------------------------------------------------------------
 [p,nC,C,MESH] = GetMeshConstraints(p,hmin,PTS);
-% id = C(:,1) == C(:,2);
-% C(id,:) = [];
-% C = unique(C,'rows');
-% nC = size(ConstraintsXY1,1); %....Younghun added
-% p = [ConstraintsXY1; p]; %....Younghun added
 N = size(p,1); % number of nodes
-
-% %--------------------------------------------------------------------------
-% % 2021-04-12 Younghun: Add channel branchs as fixed points (which is not
-% % done by GetMeshConstraints function. 
-% % Include this block only for using magnetic force approach
-% %--------------------------------------------------------------------------
-% temp = struct2table(PTS.Constraints);
-% temp = temp.xy;
-% pFix = [];
-% for i = 1 : length(temp)
-%     pFix = [pFix; temp{i}([1 end],:)];
-% end
-% nC = size(pFix,1);
-% p = [pFix; p];
-% N = size(p,1);
 
 in = ((nC+1):N)'; % Vector of non-pfix indices
 

@@ -335,6 +335,9 @@ else
         
 end
 
+% Remove duplicate constraints
+C = unique(C,'rows');
+
 %------------------------------------------------------------------------------
 % Fix the end points of the open ocean boundary
 %------------------------------------------------------------------------------

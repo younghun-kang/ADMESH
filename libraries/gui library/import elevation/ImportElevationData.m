@@ -308,11 +308,6 @@ if any(strcmpi(ext,{'.tiff','.tif'}))
 end
 
 xyzFun.Values = -xyzFun.Values;
-% Convert coordinates if needed
-if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
-    xyzFun = CoordinateConversion(app,xyzFun,'forward',PTS.cpplon,PTS.cpplat);
-end
-app.xyzFun = xyzFun;
 
 % Replace data in file by user request
 if strcmp(choice,'Replace') && ~isempty(app.FilePath)
@@ -326,5 +321,11 @@ if strcmp(choice,'Replace') && ~isempty(app.FilePath)
         end
     end
 end
+
+% Convert coordinates if needed
+if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
+    xyzFun = CoordinateConversion(app,xyzFun,'forward',PTS.cpplon,PTS.cpplat);
+end
+app.xyzFun = xyzFun;
 
 end
