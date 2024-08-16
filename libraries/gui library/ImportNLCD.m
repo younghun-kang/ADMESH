@@ -1,7 +1,10 @@
 function ImportNLCD(app)
 
 if isempty(app.MESH)
-    warndlg('No mesh data is found.','ADMESH')
+    msg = 'No mesh data is found.';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
     return;
 end
 
@@ -66,7 +69,10 @@ id = nonzeros(id);
 
 % Check if unknown values exist
 if length(id) ~= length(NLCD)
-    warndlg('Unidentified NLCD values are found.','ADMESH')
+    msg = 'Unidentified NLCD values are found.';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
     return;
 end
 

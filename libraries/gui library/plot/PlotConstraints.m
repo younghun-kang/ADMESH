@@ -51,8 +51,8 @@ if isfield(PTS,'Constraints') && ~isempty(PTS.Constraints)
     PlotConstraintsSub(-1,'b',LineWidth,'Open Ocean');
 
     % Line
-    PlotConstraintsSub([18 6],'r',LineWidth,'Line Constraint');
-    PlotConstraintsSub(-[18 6],'r',LineWidth,'Line Constraint - dummy');
+    PlotConstraintsSub([18 17 19],'r',LineWidth,'Line Constraint');
+    PlotConstraintsSub(-[18 17 19],'r',LineWidth,'Line Constraint - dummy');
 
 end
 

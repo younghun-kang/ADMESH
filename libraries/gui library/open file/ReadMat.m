@@ -29,16 +29,15 @@ ElevationDataFilename = [];
 %------------------------------------------------------------------------------
 % Check file
 %------------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Checking file...'; drawnow;
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
+    'Checking file...','Indeterminate','on');
 
-matData = struct2cell(whos('-file',file));
-
-if ~any(strcmp(matData(1,:),'PTS'))
+if isempty(who('-file',file,'PTS'))
     
-    warndlg(['No edge structure exists in this file.' ...
-        ' Make sure you are selecting the correct file for ADMESH.'],'Error');
-    
-    app.ProgressBarButton.Text = 'Ready'; drawnow;
+    msg = ['No edge structure exists in this file.' ...
+        ' Make sure you are selecting the correct file for ADMESH.'];
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
 
     status = 0;
     
@@ -54,9 +53,9 @@ end
 %------------------------------------------------------------------------------
 % Load edge structure 
 %------------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Loading Edge Structure...'; drawnow;
-
-if any(strcmp(matData(1,:),'PTS'))
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
+    'Loading Edge Structure...','Indeterminate','on');
+if ~isempty(who('-file',file,'PTS'))
     
     % Initialize as 0
     PTS = 0;
@@ -67,10 +66,10 @@ if any(strcmp(matData(1,:),'PTS'))
     % Check fields
     if ~isfield(PTS,'Poly')
         
-        warndlg('The edge structure has missing fields.','Error');
-        
-        app.ProgressBarButton.Text = 'Ready'; drawnow;
-        
+        msg = 'The edge structure has missing fields.';
+        uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
         PTS = [];
         xyzFun = [];
         status = 0;
@@ -91,9 +90,9 @@ end
 %------------------------------------------------------------------------------
 % Load elevation data
 %------------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Loading elevation data...'; drawnow;
-
-if any(strcmp(matData(1,:),'xyzFun'))
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
+    'Loading elevation data...','Indeterminate','on');
+if ~isempty(who('-file',file,'xyzFun'))
     
     % Initialize as 0
     xyzFun = [];
@@ -103,7 +102,7 @@ if any(strcmp(matData(1,:),'xyzFun'))
     
 end
 
-if any(strcmp(matData(1,:),'ElevationDataFilename'))
+if ~isempty(who('-file',file,'ElevationDataFilename'))
     
     % Load filename of elevation data
     load(file, 'ElevationDataFilename')
@@ -114,10 +113,11 @@ end
 %------------------------------------------------------------------------------
 % Load previous settings
 %------------------------------------------------------------------------------
-if any(strcmp(matData(1,:),'Settings'))
+if ~isempty(who('-file',file,'Settings'))
     
-    app.ProgressBarButton.Text = 'Loading previous settings...'; drawnow;
-    
+    progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
+        'Loading settings...','Indeterminate','on');
+
     load(file, 'Settings')
         
     LoadSettings(Settings,app); 
@@ -128,6 +128,6 @@ app.PTS = PTS;
 app.xyzFun = xyzFun;
 app.ElevationDataFilename = ElevationDataFilename;
 
-app.ProgressBarButton.Text = 'Ready'; drawnow;
+close(progdlg);
 
 end

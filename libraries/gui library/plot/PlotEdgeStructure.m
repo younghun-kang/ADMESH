@@ -65,8 +65,9 @@ YMAX = ymax + offset*per;
 % Set plot axis limits
 axis(pH,[XMIN XMAX YMIN YMAX])
 
-app.ProgressBarButton.Text = 'Plotting coastline...'; drawnow;
-
+msg = 'Plotting coastline...';
+msg = 'Displaying final mesh...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 %------------------------------------------------------------------------------
 % Initialize linewidth constant & graphics handle for user data
 %------------------------------------------------------------------------------
@@ -139,12 +140,7 @@ axis(pH,'tight');
 % Plot distance scale
 %------------------------------------------------------------------------------
 h = uiaxes(app.UIFigure);
-if strcmpi(app.CoordinateSystemDropDown.Value,'Projected (m)')
-    UnitScale = 1;
-elseif strcmpi(app.CoordinateSystemDropDown.Value,'Unprojected (decimal degree)')
-    UnitScale = deg2km(1e3); % deg2m
-end
-scalebar('hAxes',app.UIAxes,'Location','southeast','Bold',1,'Unit','m','UnitScale',UnitScale);
+scalebar('hAxes',app.UIAxes,'Location','southeast','Bold',1,'Unit','m');
 
 drawnow; pause(.005)
 
@@ -153,11 +149,5 @@ drawnow; pause(.005)
 %------------------------------------------------------------------------------
 app.xLimits = get(pH,'xlim');    % x-axis limits
 app.yLimits = get(pH,'ylim');    % y-axis limits
-
-app.ProgressBarButton.Text = 'Ready'; drawnow;
-
-% set(gui.resultsBox,'string','')
-
-% guidata(gui.Window,gui);
 
 end

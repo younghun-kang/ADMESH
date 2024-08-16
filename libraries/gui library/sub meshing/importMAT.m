@@ -37,8 +37,10 @@ matData = struct2cell(whos('-file',[pathname filename]));
 
 if ~any(strcmp(matData(1,:),'PTS'))
     
-    warndlg(['No edge structure exists in this file.' ...
-        ' Make sure you are selecting the correct file for ADMESH.'],'Error');
+    msg = ['No edge structure exists in this file.' ...
+        ' Make sure you are selecting the correct file for ADMESH.'];
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     
     uiStatusBar('Ready')
     
@@ -95,11 +97,10 @@ if any(strcmp(matData(1,:),'xyzFun'))
     
     if isa(xyzFun,'griddedInterpolant')
         
-        choice = questdlg({...
-            'Elevation data was detected in this file. Would you ',...
-            'prefer to use this data set?'},...
-            'ADMESH','Yes','No','No');
-        
+        msg = ['Elevation data was detected in this file. Would you ',...
+            'prefer to use this data set?'];
+        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'Yes','No'},'DefaultOption',2,'Icon','Warning');
         switch choice
             
             case 'Yes'

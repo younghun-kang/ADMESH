@@ -77,7 +77,7 @@ Settings = SaveSettings(gui.Window);
 %--------------------------------------------------------------------------
 % Begin ADmesh
 %--------------------------------------------------------------------------
-t=cputime; % Start Timer for ADmesh
+t=tic; % Start Timer for ADmesh
 
 %--------------------------------------------------------------------------
 % Create structured background mesh
@@ -176,7 +176,7 @@ PlotSubMesh(gui,submesh)
 %--------------------------------------------------------------------------
 % Convert CPU time to hours minutes seconds time string
 %--------------------------------------------------------------------------
-time_string = seconds2HrMinSec(cputime-t);
+time_string = seconds2HrMinSec(toc(t));
 
 %--------------------------------------------------------------------------
 % Update status bar
@@ -189,9 +189,9 @@ set(gui.Window,'WindowButtonMotionFcn' , @CoordDisplay)
 %--------------------------------------------------------------------------
 % Ask user how it looks?
 %--------------------------------------------------------------------------
-choice = questdlg({...
-    'Would you like to keep the sub mesh or run ADMESH again?'},...
-    'ADMESH','Continue','Re-Try','Continue');
+msg = 'Would you like to keep the sub mesh or run ADMESH again?';
+choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Continue','Re-Try'},'DefaultOption',1,'Icon','Warning');
 
 switch choice
     
@@ -249,7 +249,9 @@ MESH.cpplat = gui.MESH.cpplat;
 % Check for variables
 %--------------------------------------------------------------------------
 if isempty(MESH) % User has not run ADmesh yet
-    warndlg('No mesh to save....','Error');
+    msg = 'No mesh to save....';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     return
 end
 
@@ -261,8 +263,10 @@ end
 if isfield(MESH,'cpplon')
     MESH = Meters2Geo(MESH);
 else
-    errordlg(['In order to write a kml file the coordinates ',...
-        'of the domain needed to be geographic originally.'])
+    msg = ['In order to write a kml file the coordinates ',...
+        'of the domain needed to be geographic originally.'];
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     return
 end
 

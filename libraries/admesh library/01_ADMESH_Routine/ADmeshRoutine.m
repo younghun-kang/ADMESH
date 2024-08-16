@@ -52,7 +52,7 @@ function ADmeshRoutine(varargin)
 app = varargin{1};
 
 % Turn off colormap
-SetContourStatus(app,'off'); drawnow
+SetContourStatus(app,'Off'); drawnow
 
 Compute1DProjection(app);
 SetDummyConstraint(app);
@@ -76,28 +76,21 @@ end
 % Save ADMESH settings for appending to file
 %--------------------------------------------------------------------------
 [Settings,AdvSettings] = SaveSettings(app);
-if strcmpi(app.CoordinateSystemDropDown.Value,'Projected (m)')
-    UnitScale = 1;
-elseif strcmpi(app.CoordinateSystemDropDown.Value,'Unprojected (decimal degree)')
-    UnitScale = km2deg(1e-3); % m2deg
-end
-hmax = hmax*UnitScale;
-hmin = hmin*UnitScale;
 
 %--------------------------------------------------------------------------
 % Begin ADmesh
 %--------------------------------------------------------------------------
-t=cputime; % Start Timer for ADmesh
+t=tic; % Start Timer for ADmesh
 
 %--------------------------------------------------------------------------
 % Create structured background mesh
 %--------------------------------------------------------------------------
-[X,Y,delta] = CreateBackgroundGrid(app.PTS,hmax,hmin,res,app.ProgressBarButton);
+[X,Y,delta] = CreateBackgroundGrid(app.PTS,hmax,hmin,res,app.UIFigure);
 
 %--------------------------------------------------------------------------
 % Calculate distance function
 %--------------------------------------------------------------------------
-[D,gradD]   = SignedDistanceFunction(app.PTS,X,Y,delta,hmax,app.ProgressBarButton);
+[D,gradD]   = SignedDistanceFunction(app.PTS,X,Y,delta,hmax,app.UIFigure);
 
 while 1 % Repeat if 1D mesh generation turns on
 %--------------------------------------------------------------------------
@@ -108,22 +101,22 @@ h0 = hmax*ones(size(D));
 %--------------------------------------------------------------------------
 % Compute boundary curvature
 %--------------------------------------------------------------------------
-h0 = CurvatureFunction(h0,D,gradD,X,Y,K,g,hmax,hmin,Settings,app.ProgressBarButton,app.PTS);
+h0 = CurvatureFunction(h0,D,gradD,X,Y,K,g,hmax,hmin,Settings,app.UIFigure,app.PTS);
 
 %--------------------------------------------------------------------------
 % Compute local feature size
 %--------------------------------------------------------------------------
-h0 = MedialAxisFunction(h0,X,Y,D,gradD,R,hmin,hmax,Settings,app.ProgressBarButton);
+h0 = MedialAxisFunction(h0,X,Y,D,gradD,R,hmin,hmax,Settings,app.UIFigure);
 
 %--------------------------------------------------------------------------
 % Interpolate bathymetry to background grid if needed.
 %--------------------------------------------------------------------------
-Z  = CreateElevationGrid(X,Y,app.xyzFun,Settings,app.ProgressBarButton);
+Z  = CreateElevationGrid(X,Y,app.xyzFun,Settings,app.UIFigure);
 
 %--------------------------------------------------------------------------
 % Compute bathymetry
 %--------------------------------------------------------------------------
-h0 = BathymetryFunction(h0,X,Y,Z,s,hmin,hmax,delta,Settings,app.ProgressBarButton);
+h0 = BathymetryFunction(h0,X,Y,Z,s,hmin,hmax,delta,Settings,app.UIFigure);
 
 %--------------------------------------------------------------------------
 % Compute dominate tide function
@@ -138,7 +131,7 @@ h0 = Dominate_tide(h0,T,C,Z,size(X),hmax,hmin,Settings); clear Z
 %--------------------------------------------------------------------------
 % Compute mesh size function
 %--------------------------------------------------------------------------
-h  = MeshSizeFunction(h0,D,hmax,hmin,g,delta,app.ProgressBarButton); clear h0
+h  = MeshSizeFunction(h0,D,hmax,hmin,g,delta,app.UIFigure); clear h0
 
 % h(D > 0) = nan;
 % 
@@ -152,37 +145,16 @@ h  = MeshSizeFunction(h0,D,hmax,hmin,g,delta,app.ProgressBarButton); clear h0
 % 2021-04-07 YK: save updated target mesh size to generate "second" 1D mesh
 %--------------------------------------------------------------------------
 if app.DummyConstraint == 0 % Break while loop if not dummy
+    
     break;
     
 elseif app.DummyConstraint == 1 % Repeat loop with updated constraints if dummay
     
     GenerateMeshOnConstraints(X,Y,h,Settings,app);
 
-elseif app.DummyConstraint == 2
-    GenerateMeshOnConstraints(X,Y,h,Settings,app);
-    return;
-end
-
-if app.DummyConstraint == -1
-    [filepath,filename] = fileparts(app.FilePath);
-    filename = [filepath,'\',filename,'_updated_1d_hsize.mat'];
-    save(filename,'X','Y','h');
-    return;
 end
 
 end
-% %--------------------------------------------------------------------------
-% % 2021-04-08 Younghun: added to apply magetic-like force to channels
-% %--------------------------------------------------------------------------
-% I = abs(D) <= 2*hmin;
-% fMag1 = @(p) repmat(interp2(X,Y,double(I),p(:,1),p(:,2)),1,2);
-% fD = @(p) interp2(X,Y,abs(D),p(:,1),p(:,2));
-% fgradDx = @(p) interp2(X,Y,gradD.x,p(:,1),p(:,2));
-% fgradDy = @(p) interp2(X,Y,gradD.y,p(:,1),p(:,2));
-% fMag = @(p) fMag1(p).*fD(p).*[fgradDx(p), fgradDy(p)]./sqrt(fgradDx(p).^2 + fgradDy(p).^2);
-% 
-% load('8ssed');
-% fMag = @(p) fMag1(p).*[fVx(p),fVy(p)];
 
 %--------------------------------------------------------------------------
 % Create an interpolant surface for the distance and mesh size function
@@ -198,7 +170,7 @@ hmin        = min(h(:));                            clear h
 % Generate mesh
 %--------------------------------------------------------------------------
 %MESH = distquadmesh2d(PTS,DistFun,DistGxFun,DistGyFun,MeshFun,xyzFun,hmin,Settings);
-app.MESH = distmesh2d(app.PTS,phi,MeshFun,app.xyzFun,hmin,Settings,app.ProgressBarButton,app.UIAxes,AdvSettings);
+app.MESH = distmesh2d(app.PTS,phi,MeshFun,app.xyzFun,hmin,Settings,app.UIFigure,app.UIAxes,AdvSettings);
 clear phi MeshFun
 
 %--------------------------------------------------------------------------
@@ -209,18 +181,20 @@ clear phi MeshFun
 %--------------------------------------------------------------------------
 % Plot Final Results
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Displaying final mesh...'; drawnow;
+msg = 'Displaying final mesh...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 PlotMesh(app,.1)
 
 %--------------------------------------------------------------------------
 % Convert CPU time to hours minutes seconds time string
 %--------------------------------------------------------------------------
-time_string = seconds2HrMinSec(cputime-t);
+time_string = seconds2HrMinSec(toc(t));
 
 %--------------------------------------------------------------------------
 % Update status bar
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = ['Run time: ' , time_string ]; drawnow;
+app.ResultsBox.Value{end+1} = '';
+app.ResultsBox.Value{end+1} = ['Run time: ' , time_string ];
 
 %--------------------------------------------------------------------------
 % Update .mat file

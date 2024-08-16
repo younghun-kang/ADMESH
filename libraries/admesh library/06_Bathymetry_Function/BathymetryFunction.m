@@ -1,4 +1,4 @@
-function h0 = BathymetryFunction(h0,X,Y,Z,s,hmin,hmax,delta,Settings,ProgressBar)
+function h0 = BathymetryFunction(h0,X,Y,Z,s,hmin,hmax,delta,Settings,UIFigure)
 % bathymetry - Computes the mesh size based on bathymetry changes
 %
 % Syntax:  [h_bathy, B_grid] = bathymetry(X,Y,D,bathy,bathy_value,delta)
@@ -46,8 +46,9 @@ if strcmp(Status,'On') && ~isempty(Z) % If true, compute bathymetry function
     %------------------------------------------------------------------------------
     % Compute the gradient of the bathymetry
     %------------------------------------------------------------------------------
-    ProgressBar.Text = 'Computing the gradient of the bathymetry...'; drawnow;
-    
+    msg = 'Computing the gradient of the bathymetry...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
     % Inner boundary
     i = (2:LX-1); j = (2:LY-1);
     gradBx(j,i) = (Z(j,i+1)-Z(j,i-1))*twodeltax;
@@ -100,7 +101,8 @@ if strcmp(Status,'On') && ~isempty(Z) % If true, compute bathymetry function
     gradBx(j,i) = (Z(j,i-2)-4*Z(j,i-1)+3*Z(j,i))*twodeltax;
     gradBy(j,i) = (Z(j-2,i)-4*Z(j-1,i)+3*Z(j,i))*twodeltay;
     
-    ProgressBar.Text = 'Computing mesh size from bathymetry...'; drawnow;
+    msg = 'Computing mesh size from bathymetry...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
     % Calculate hb(x), the bathymetry mesh size
     h_bathy = s.*(abs(sqrt((gradBx).^2 + (gradBy).^2)./Z)).^(-1);

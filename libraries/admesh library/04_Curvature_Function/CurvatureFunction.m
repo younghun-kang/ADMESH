@@ -1,4 +1,4 @@
-function h0 = CurvatureFunction(h0,D,gradD,X,Y,K,g,hmax,hmin,Settings,ProgressBar,PTS)
+function h0 = CurvatureFunction(h0,D,gradD,X,Y,K,g,hmax,hmin,Settings,UIFigure,PTS)
 % curvature - Computes initial mesh size h_curve based on boundary
 % curvature
 %
@@ -38,8 +38,9 @@ Status = Settings.K.Status;
 %------------------------------------------------------------------------------
 if strcmp(Status,'On') 
     
-    ProgressBar.Text = 'Computing Boundary Curvature...'; drawnow;
-                
+    msg = 'Computing Boundary Curvature...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
     % Compute the magnitude of the gradient
     m = ( sqrt(gradD.x.^2 + gradD.y.^2) );
     
@@ -114,8 +115,6 @@ if strcmp(Status,'On')
     
     % Compare initial conditions and save
     h0 = min(h_curve, h0);
-    
-    ProgressBar.Text = ''; drawnow;
         
 end
 

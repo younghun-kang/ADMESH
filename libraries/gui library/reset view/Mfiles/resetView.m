@@ -6,8 +6,7 @@ function resetView(varargin)
 %------------------------------------------------------------------------------
 app = varargin{1};
 
-app.ViewAxes = app.UIAxes;
-pH = app.ViewAxes; % Plot Window handle
+pH = app.UIAxes; % Plot Window handle
 
 % Get axis settings
 xLIM = app.xLimits; yLIM = app.yLimits;

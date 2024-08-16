@@ -34,20 +34,22 @@ MESH = app.MESH;
 % Check for variables
 %--------------------------------------------------------------------------
 if isempty(MESH) % User has not run ADmesh yet
-    warndlg('No mesh to save....','Error');
+    msg = 'No mesh to save....';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     return
 end
 
 %--------------------------------------------------------------------------
 % Ask user for file name
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Save Mesh File As....'; drawnow;
+msg = 'Save Mesh File As....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 [file,path] = uiputfile('*.14','Save Mesh File As');
 
 % If user cancels
 if ~file
-    app.ProgressBarButton.Text = 'Ready'; drawnow;
     return
 end
 
@@ -57,11 +59,9 @@ end
 %--------------------------------------------------------------------------
 if isfield(MESH,'cpplon') && ~isempty(MESH.cpplon)
     
-    choice = questdlg(...
-        'What coordinate system would you like to write your data in?', ...
-        'ADmesh', ...
-        'Geographic','Cartesian','Geographic');
-    
+    msg = 'What coordinate system would you like to write your data in?';
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Geographic','Cartesian'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
     
     switch choice
@@ -69,13 +69,14 @@ if isfield(MESH,'cpplon') && ~isempty(MESH.cpplon)
         case 'Geographic' % Convert back to geographic coordinates
             
             % Convert PTS data structure
-            MESH = Meters2Geo(MESH);
+            MESH = Cart2Geo(MESH);
             
     end
     
 end
 
-app.ProgressBarButton.Text = 'Creating file....'; drawnow;
+msg = 'Creating file....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 %--------------------------------------------------------------------------
 % Open file and begin writing
@@ -98,14 +99,16 @@ fprintf(fid,'%i %i\n',[NE ; NP]);
 %--------------------------------------------------------------------------
 % Write points
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Writing nodal coordinates....'; drawnow;
+msg = 'Writing nodal coordinates....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 fprintf(fid,'%10.0i %5.10e %5.10e %5.10e\n', [(1:NP)', MESH.Points]');
 
 %--------------------------------------------------------------------------
 % Write triangulation
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Writing connectivity list....'; drawnow;
+msg = 'Writing connectivity list....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 fprintf(fid,'%5.0i %4.0i %6.0i %6.0i %6.0i\n',...
     [(1:NE)', 3*ones(NE,1), MESH.ConnectivityList]');
@@ -184,8 +187,9 @@ if isfield(MESH,'Constraints')
     %----------------------------------------------------------------------
     if any([MESH.Constraints.num] ~= -1)
         
-        app.ProgressBarButton.Text = 'Writing normal flow specified boundary data....'; drawnow;
-
+        msg = 'Writing normal flow specified boundary data....';
+        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+        
         % find all indices
         ix = find([MESH.Constraints.num] ~= -1);
         
@@ -300,8 +304,12 @@ end
 %--------------------------------------------------------------------------
 fclose(fid);
 
-app.ProgressBarButton.Text = 'Mesh file complete!'; drawnow;
+close(progdlg);
+msg = 'Mesh file complete!';
+uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','info');
+
 pause(1);
 
-app.ProgressBarButton.Text = 'Ready'; drawnow;
+
 

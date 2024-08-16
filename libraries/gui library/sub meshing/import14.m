@@ -51,11 +51,9 @@ if isempty(mesh); status = 0; return; end
 
 if isa(xyzFun,'griddedInterpolant')
     
-    choice = questdlg({...
-        'Elevation data was detected in this file. Would you ',...
-        'prefer to use this data set?'},...
-        'ADMESH','Yes','No','No');
-    
+    msg = 'What coordinate system would you like to write your data in?';
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Yes','No'},'DefaultOption',2,'Icon','Warning');
     switch choice
         
         case 'Yes'

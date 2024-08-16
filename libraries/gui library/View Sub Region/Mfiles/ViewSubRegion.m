@@ -140,11 +140,11 @@ while 1
     % gui.sb.setText('Continue?')
     
     % Ask the user if they like their selection
-    choice = questdlg({...
+    msg = [
         'Select Continue to proceed with the selection you made. '...
-        'Select Re-Try to select a different region.'},...
-        'ADMESH','Continue','Re-Try','Quit','Continue');
-    
+        'Select Re-Try to select a different region.'];
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Continue','Re-Try','Quit'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
     
     switch choice

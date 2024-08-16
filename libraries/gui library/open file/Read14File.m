@@ -300,13 +300,12 @@ if all(abs(MESH.Points(:,3)) == 1) || all(MESH.Points(:,3) == 0)
         %         % Turn off progress bar
         %         gui.sb.ProgressBar.setVisible(false)
                         
-        app.ProgressBarButton.Text = 'Creating elevation interpolant function...';
-%         gui.sb.ProgressBar.setIndeterminate(true)
-        drawnow
+        msg = 'Creating elevation interpolant function...';
+        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+        
         xyzFun = scatteredInterpolant(MESH.Points(:,1),MESH.Points(:,2),MESH.Points(:,3),'linear','nearest');
         
-        app.ProgressBarButton.Text = 'Ready';
-        drawnow
+        close(progdlg);
         
 end
     

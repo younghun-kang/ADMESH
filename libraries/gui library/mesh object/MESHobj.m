@@ -239,10 +239,9 @@ end
 if all(MESH.Points(:,1) < 180 & MESH.Points(:,1) > -180 & MESH.Points(:,2) < 90 & MESH.Points(:,2) > -90)
     
     % Construct a questdlg with three options
-    choice = questdlg('Select the coordinate system the mesh file is in.', ...
-        'ADMESH', ...
-        'Geographic','Meters','None','Geographic');
-    
+    msg = 'Select the coordinate system the mesh file is in.';
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Geographic','Meters','None'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(.0005);
     
     MESH.cpplon = [];

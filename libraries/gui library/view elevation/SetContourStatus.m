@@ -8,26 +8,34 @@ function SetContourStatus(app,varargin)
 %--------------------------------------------------------------------------
 if length(varargin) == 1
     status = varargin{1};
+    app.ContoursDropDown.Value = status;
 else
     status = app.ContoursDropDown.Value;
 end
-app.ViewAxes = app.UIAxes;
 
 %--------------------------------------------------------------------------
 % Check for data
 %--------------------------------------------------------------------------
 if ~strcmpi(status,'off')
-    if strcmpi(status,'bathy/topo') && isempty(app.xyzFun)
-        warndlg('No vertical elevation data are identified.'...
-            ,'Error');
-        app.ContoursDropDown.Value = 'Off';
-        return;
+    if strcmpi(status,'bathy/topo')
+
+        h1 = findobj(app.UIAxes,'tag','Edge Structure');
+
+        if ~isempty(h1) && isempty(app.xyzFun)
+            msg = 'No vertical elevation data are identified.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+            SetContourStatus(app,'Off');
+            return;
+        end
+        
     end
 
     if strcmpi(status,'Manning''s n') && ~isfield(app.MESH,'Attributes')
-        warndlg('No Manning''n n value data are identified.'...
-            ,'Error');
-        app.ContoursDropDown.Value = 'Off';
+        msg = 'No Manning''n n value data are identified.';
+        uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+        SetContourStatus(app,'Off');
         return;
     end
 end
@@ -46,20 +54,16 @@ switch lower(status)
         cmap_name = app.ColormapDropDown.Value;
                         
         % Are we displaying elevation nodes or triangulated elevation
-        h1 = findobj(app.ViewAxes,'tag','Edge Structure');
-        h2 = findobj(app.ViewAxes,'tag','Mesh');
+        h1 = findobj(app.UIAxes,'tag','Edge Structure');
+        h2 = findobj(app.UIAxes,'tag','Mesh');
         
-        app.ProgressBarButton.Text = 'Setting colormap...';
+        msg = 'Setting colormap...';
+        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
         
-        switch lower(status)
-            case 'bathy/topo'
-                Field = -app.xyzFun.Values;
-            case 'manning''s n'
-                
-        end
-
         if ishandle(h1) == 1 % Plot elevation nodes
             
+            Field = -app.xyzFun.Values;
+
             % Get colormap
             if strcmpi(cmap_name,'land & sea')
 
@@ -75,13 +79,14 @@ switch lower(status)
                 
             end
             
-            app.ProgressBarButton.Text = 'Preparing to display...';
+            msg = 'Preparing to display...';
+            progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
             
             % Plot
             if isa(app.xyzFun,'scatteredInterpolant')
                 
                 
-                delete(findobj(app.ViewAxes,'tag','elevation plot'))
+                delete(findobj(app.UIAxes,'tag','elevation plot'))
                 
                 % Get x & y limits
                 xmin = min(vertcat(app.PTS.Poly(:).x));
@@ -111,14 +116,14 @@ switch lower(status)
                 z = Field(ixy)';
                 
                 % Designate colormap
-                colormap(app.ViewAxes,cmap)
+                colormap(app.UIAxes,cmap)
                 
                 % Plot points
                 eH = patch(...
-                    'parent',app.ViewAxes,...
-                    'xdata',[x;x],...
-                    'ydata',[y;y],...
-                    'cdata',[z;z],...
+                    'parent',app.UIAxes,...
+                    'xdata',x,...
+                    'ydata',y,...
+                    'cdata',z,...
                     'facecolor','none',...
                     'edgecolor','none',...
                     'marker','sq',...
@@ -126,11 +131,13 @@ switch lower(status)
                     'tag','elevation plot');
                 
                 uistack(eH,'bottom')
+
+                drawnow;
                 
             else
                 
-                delete(findobj(app.ViewAxes,'tag','elevation plot'))
-                delete(findobj(app.ViewAxes,'tag','colorbar'))
+                delete(findobj(app.UIAxes,'tag','elevation plot'))
+                delete(findobj(app.UIAxes,'tag','colorbar'))
                 
                % Get x & y limits
                 xmin = min(vertcat(app.PTS.Poly(:).x));
@@ -162,21 +169,22 @@ switch lower(status)
                 % Designate colormap
                 
                 
-                eH = imagesc(app.ViewAxes,x(~ix),y(~iy),Field','tag','elevation plot');
-                colormap(app.ViewAxes,cmap);
-                axis(app.ViewAxes,'xy');
+                eH = imagesc(app.UIAxes,x(~ix),y(~iy),Field','tag','elevation plot');
+                colormap(app.UIAxes,cmap);
+                axis(app.UIAxes,'xy');
                 
                 % Put elevation plot at the bottom
-                for i = 1 : length(app.ViewAxes.Children)
-                    if strcmpi(app.ViewAxes.Children(i).Tag,'elevation plot')
-                        app.ViewAxes.Children = app.ViewAxes.Children([1:i-1,i+1:end,i]);
+                for i = 1 : length(app.UIAxes.Children)
+                    if strcmpi(app.UIAxes.Children(i).Tag,'elevation plot')
+                        app.UIAxes.Children = app.UIAxes.Children([1:i-1,i+1:end,i]);
                         break;
                     end
                 end
                 
             end
             
-            app.ProgressBarButton.Text = 'Ready';
+            drawnow;
+            close(progdlg);
             
         elseif ishandle(h2) == 1
             
@@ -203,7 +211,8 @@ switch lower(status)
                 
             end
             
-            app.ProgressBarButton.Text = 'Preparing to display...';
+            msg = 'Preparing to display...';
+            progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
             
             delete(h2);
 
@@ -211,16 +220,17 @@ switch lower(status)
             faces = app.MESH.ConnectivityList;              % connectivity list
             
             trisurf(faces,verts(:,1),verts(:,2),Field,...
-                'Parent',app.ViewAxes,...
+                'Parent',app.UIAxes,...
                 'Tag','Mesh',...
                 'EdgeColor','none',...
                 'FaceColor','interp');
 
-            colormap(app.ViewAxes,cmap);
+            colormap(app.UIAxes,cmap);
 
         end
 
-        colorbar(app.ViewAxes,'Tag','Mesh');
+        colorbar(app.UIAxes,'Tag','Mesh');
+        drawnow;
 
     case 'off'
         
@@ -228,32 +238,26 @@ switch lower(status)
         app.ColormapDropDown.Enable = 'off';
         
         % Are we displaying elevation nodes or triangulated elevation
-        h1 = findobj(app.ViewAxes,'tag','Edge Structure');
-        h2 = findobj(app.ViewAxes,'tag','Mesh');
+        h1 = findobj(app.UIAxes,'tag','Edge Structure');
+        h2 = findobj(app.UIAxes,'tag','Mesh');
         
         if ishandle(h1) == 1
             
-            delete(findobj(app.ViewAxes,'tag','elevation plot'))
-            delete(findobj(app.ViewAxes,'tag','colorbar'))
+            delete(findobj(app.UIAxes,'tag','elevation plot'))
+            delete(findobj(app.UIAxes,'tag','colorbar'))
             
         elseif ishandle(h2) == 1
             
             delete(h2);
-
-            verts = app.MESH.Points;                        % vertices
-            faces = app.MESH.ConnectivityList;              % connectivity list
-            
-            trisurf(faces,verts(:,1),verts(:,2),zeros(length(verts),1),...
-                'Parent',app.ViewAxes,...
-                'Tag','Mesh',...
-                'EdgeColor',[0 .4 .8],...
-                'FaceColor','none');
+            if ~isempty(app.MESH)
+                PlotMesh(app,.1);
+            end
         end
 
-        colorbar(app.ViewAxes,'off');
-end
+        colorbar(app.UIAxes,'off');
+        drawnow;
 
-app.ProgressBarButton.Text = 'Ready';
+end
 
     function y = landcolor(n)
         %LANDCOLOR Land colormap

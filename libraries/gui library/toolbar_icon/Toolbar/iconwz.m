@@ -188,7 +188,9 @@ function btnErase_Callback(hObject, eventdata, handles)
 % ===========================
 function PutIcon(hObject, eventdata, handles, Type)
 
-Yes = questdlg('Do you want to copy image?', 'Comfirmation', 'Yes', 'No', 'Yes');
+Yes = uiconfirm(app.UIFigure,'Do you want to copy image?','ADMESH',...
+    'Options',{'Yes','No'},'DefaultOption',1,'Icon','Warning');
+
 if ~isequal(Yes, 'Yes'), return; end
 
 handles.Picture = getdata(Type, 1);

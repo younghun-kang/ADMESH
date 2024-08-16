@@ -19,19 +19,17 @@ if nargin == 1
     
     % Only input is mesh, redisplay all mesh information
     
-    [gui] = deal(varargin{:});
+    [app] = deal(varargin{:});
     
-    p = gui.MESH.Points;
-    t = gui.MESH.ConnectivityList;
+    p = app.MESH.Points;
+    t = app.MESH.ConnectivityList;
     action = 'default';
     
 else
     
     % Only update action input
     
-    [fig,p,t,action] = deal(varargin{:});
-        
-    gui = guidata(fig);
+    [app,p,t,action] = deal(varargin{:});
     
 end
 
@@ -79,13 +77,13 @@ switch action
                 '',...
                 ['Minimum Element Quality: ' num2str(minEQ,'%.2f')]};
         end
-        gui.ResultsBox.Value = str;
+        app.ResultsBox.Value = str;
                    
         % Get current minimum element quality threshold
-        MinEQ = gui.MinEQ;
+        MinEQ = app.MinEQ;
         
         % Delete any currently displayed bad elements
-        delete(findall(gui.UIFigure,'Tag','Bad Element'))
+        delete(findall(app.UIFigure,'Tag','Bad Element'))
         
         % Find bad elements
         ib = find(EQ < MinEQ);
@@ -98,7 +96,7 @@ switch action
             patchinfo.ydata          = y(t(ib,:))';
             patchinfo.FaceColor      = 'r';
             patchinfo.linewidth      = 1.0;
-            h                        = patch(patchinfo,'Parent',gui.UIAxes);
+            h                        = patch(patchinfo,'Parent',app.UIAxes);
             set(h,'Tag','Bad Element')
 %             uistack(h,'bottom')
             
@@ -116,10 +114,10 @@ switch action
         [minEQ, meanEQ, EQ] = MeshQuality(p,t,0,'Triangle');
                 
         % Delete any currently displayed bad elements
-        delete(findall(gui.Window,'Tag','Bad Element'))
+        delete(findall(app.Window,'Tag','Bad Element'))
         
         % Find bad elements
-        ib = find(EQ < gui.MinEQ);
+        ib = find(EQ < app.MinEQ);
         
         if ~isempty(ib) % Display bad elements
             
@@ -161,7 +159,7 @@ switch action
                 ['Minimum Element Quality: ' num2str(minEQ,'%.2f')]};
         end
         
-        set(gui.resultsBox,'string',str)
+        set(app.resultsBox,'string',str)
         
 end
 

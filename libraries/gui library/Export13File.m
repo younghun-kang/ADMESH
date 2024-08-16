@@ -6,7 +6,10 @@ function Export13File(app)
 app.ProgressBarButton.Text = 'Checking mesh attributes...'; drawnow;
 
 if ~isfield(app.MESH,'Attributes')
-    warndlg('No attributes are found.')
+    msg = 'No attributes are found.';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
     return;
 end
 
@@ -44,7 +47,10 @@ for i = 1 : numAtt
 
             AttNonDefaultID{i} = AttID(AttNonDefaultID{i}); % Convert to global node id
         otherwise
-            warndlg('Wrong attributes are found. Abort exporting .13 file.');
+            msg = 'Wrong attributes are found. Abort exporting .13 file.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
     end
 end
 

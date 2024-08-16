@@ -1,4 +1,4 @@
-function h0 = MedialAxisFunction(h0,X,Y,D,gradD,R,hmin,hmax,Settings,ProgressBar)
+function h0 = MedialAxisFunction(h0,X,Y,D,gradD,R,hmin,hmax,Settings,UIFigure)
 % medial_axis - Compute the medial axis of the polygon in PTS
 %
 % Syntax:  [h_lfs,MAP,AOF] = medial_axis(X,Y,R,gradD,PTS,plots,D,method)
@@ -38,8 +38,9 @@ Status = Settings.R.Status;
 %------------------------------------------------------------------------------
 if strcmp(Status,'On')
     
-    ProgressBar.Text = 'Locating medial axis points...'; drawnow;
-    
+    msg = 'Locating medial axis points...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
     % Locate Medial Axis Points w/in the Boundary (negative distance values)
     % Medial Axis point = point w/large singularity
     threshold = 0.15; % threshold for medial axis
@@ -69,8 +70,9 @@ if strcmp(Status,'On')
     
     inner_product = inner_productx + inner_producty;
     
-    ProgressBar.Text = 'Computing mesh size from Medial Axis...'; drawnow;
-    
+    msg = 'Computing mesh size from Medial Axis...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
     AOF = inner_product./8;  %compute average outward flux
     
     MA(j,i) = AOF > threshold;
@@ -91,8 +93,6 @@ if strcmp(Status,'On')
     
     % Compare initial conditions and save
     h0 = min(h_lfs, h0);
-
-    ProgressBar.Text = ''; drawnow;
         
 end
 

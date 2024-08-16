@@ -1,4 +1,4 @@
-function ClearWindow(app)
+function status = ClearWindow(app)
 % ClearAllCallback - GUI Callback that clears current mesh
 % file.
 %
@@ -20,6 +20,7 @@ function ClearWindow(app)
 % August 2013; Last revision: 08-August-2013
 
 %------------------------- BEGIN CODE ------------------------------------
+status = 1;
 
 %--------------------------------------------------------------------------
 % Get GUI data
@@ -36,12 +37,14 @@ end
 %--------------------------------------------------------------------------
 % Ask user if they are sure they want to delete the mesh
 %--------------------------------------------------------------------------
-choice = questdlg('Are you sure you want to clear?'...
-    ,'ADMESH','Clear','Cancel', 'Cancel');
+msg = 'Are you sure you want to clear?';
+choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+    'Options',{'Clear','Cancel'},'DefaultOption',2,'Icon','Warning');
 
 drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
 
 if strcmp(choice,'Cancel')
+    status = 0;
     return
 end
 
@@ -83,8 +86,10 @@ colorbar('delete') % Delete current colorbar
 % Remove current legend if it exist
 app.ResultsBox.Value = '';
 
+SetContourStatus(app,'Off');
+
 %--------------------------------------------------------------------------
-% Clear guiH mesh data structure variables
+% Clear app data
 %--------------------------------------------------------------------------
 app.PTS                = [];   % Edge Structure
 app.xyzFun             = [];   % Elevation interpolant
@@ -93,9 +98,8 @@ app.MinEQ              = 0.3;  % Minimum element quality
 app.xLimits            = [0 1];
 app.yLimits            = [0 1];
 app.per                = 0;    % Percent offset
+app.ElevationDataFilename = [];
 
-app.ProgressBarButton.Text = 'Ready';
-
-% guidata(fig,gui)
+drawnow;
 
 end

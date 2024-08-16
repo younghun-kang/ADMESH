@@ -25,8 +25,6 @@ function DisplayBadElements(app)
 %------------------------------------------------------------------------------
 % Get GUI data
 %------------------------------------------------------------------------------
-% fig         = varargin{1};
-% app         = guidata(fig);
 pH          = app.UIAxes;
 meshPatch   = app.MESH;
 
@@ -52,14 +50,18 @@ prompt={[...
 name='ADmesh'; numlines=1; defaultanswer={num2str(app.MinEQ)};
 options.Resize='off'; options.WindowStyle='normal'; options.Interpreter='tex'; pause(.001)
 
-app.MinEQ = str2double(strtrim(cell2mat(inputdlg(prompt,name,numlines,defaultanswer,options)))); 
-
+try
+    app.MinEQ = str2double(strtrim(cell2mat(inputdlg(prompt,name,numlines,defaultanswer,options))));
+end
 drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
 
 % Check range
 if app.MinEQ < 0 || app.MinEQ > 1
     
-    warndlg('The value you entered was out of the range of [0 , 1]','Error');
+    msg = 'The value you entered was out of the range of [0 , 1]';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
+
     return
     
 end

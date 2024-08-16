@@ -26,7 +26,9 @@ function SaveMatFile(varargin)
 app = varargin{1};
 
 if isempty(app.PTS) % User has not run ADmesh yet
-    warndlg('No edge structure to save....','Error');
+    msg = 'No edge structure to save....';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     return
 end
 

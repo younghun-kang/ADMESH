@@ -29,9 +29,9 @@ if ~isempty(meshPatch)
     % Ask user for coordinates
     % gui.sb.setText('Enter Location... ');
     
-    choice = questdlg('Check the appropriate coordinate system?', ...
-        'ADMESH', ...
-        'Geographic', 'Cartesian (Meters)', 'Geographic');
+    msg = 'Check the appropriate coordinate system?';
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Geographic','Cartesian (Meters)'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(1e-5);
 
     prompt = {'Enter Latitude/Y:','Enter Longitude/X:'};
@@ -129,9 +129,9 @@ else
             % Ask user for coordinates
             % gui.sb.setText('Enter Location...');
             
-            choice = questdlg('Check the appropriate coordinate system?', ...
-                'ADMESH', ...
-                'Geographic', 'Cartesian (Meters)', 'Geographic');
+            msg = 'Check the appropriate coordinate system?';
+            choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'Geographic','Cartesian (Meters)'},'DefaultOption',1,'Icon','Warning');
             drawnow; pause(1e-5);
             
             prompt = {'Enter Latitude/Y:','Enter Longitude/X:'};

@@ -26,7 +26,7 @@ function ImportElevationData(varargin)
 app = varargin{1};
 
 % Turn off colormap
-app.ContoursDropDown.Value = 'Off';
+SetContourStatus(app,'Off');
 
 %--------------------------------------------------------------------------
 % Check to see if edge structure is loaded
@@ -49,11 +49,11 @@ end
 %--------------------------------------------------------------------------
 if ~isempty(xyzFun) % Bathymetry data is loaded
     
-    choice = questdlg(['There is already existing bathymetry. Would you like '...
+    msg = ['There is already existing bathymetry. Would you like '...
         'to replace the existing bathymetry or use this ' ...
-        'bathymetry temporarily?.']...
-        ,'ADMESH','Replace','Use Temporarily', 'Cancel','Replace');
-    
+        'bathymetry temporarily?.'];
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Replace','Use Temporarily','Cancel'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
     
     if strcmp(choice,'Cancel')
@@ -69,23 +69,25 @@ end
 %--------------------------------------------------------------------------
 % Get the file name from the user
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Select a (.xyz) or (.asc) file....'; drawnow;
-
+msg = 'Select an elevation file....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+f_dummy = figure('Position',[-100 -100 0 0]); % Create a dummy figure so that uigetfile doesn't minimize our GUI
 [file, path] = uigetfile({'*.xyz;*.asc;*.tiff;*.tif','Elevation Files (*.xyz,*.asc,*.tiff,*.tif)'},...
     'Select a file',cd);
-
+delete(f_dummy); % Delete the dummy figure
+figure(app.UIFigure); % Put focus on ADMESH app
 %--------------------------------------------------------------------------
 % Did the user make a selection?
 %--------------------------------------------------------------------------
 if ~file
-    app.ProgressBarButton.Text = 'Ready'; drawnow;
     return
 end
 
 %--------------------------------------------------------------------------
 % Determine the file type
 %--------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Reading in data....'; drawnow;
+msg = 'Reading in data....';
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 % Get file extension
 [~,~,ext] = fileparts([path file]);
@@ -99,7 +101,8 @@ if strcmp(ext,'.xyz')
     
     try
         
-        app.ProgressBarButton.Text = 'Reading in elevation data...'; drawnow;
+        msg = 'Reading in elevation data...';
+        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
         xyz = textscan(fid, '%f %f %f'); % Read in data
         
         fclose(fid); % Close file
@@ -118,7 +121,7 @@ if strcmp(ext,'.xyz')
         % Display error message
         errordlg(ERRORSTRING,DLGNAME)
         
-        app.ProgressBarButton.Text = 'Ready'; drawnow;
+        close(progdlg);
         
         return
         
@@ -127,12 +130,8 @@ if strcmp(ext,'.xyz')
     % Convert cell array to matrix
     xyz = cell2mat(xyz);
     
-    % Convert coordinates
-    if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon) % Younghun added
-        [xyz(:,1),xyz(:,2)] = Geo2Meters(xyz(:,1),xyz(:,2),PTS.cpplon,PTS.cpplat);
-    end
-    
-    app.ProgressBarButton.Text = 'Creating elevation interpolant function...'; drawnow;
+    msg = 'Creating elevation interpolant function...';
+    progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     xyzFun = scatteredInterpolant(xyz(:,1),xyz(:,2),xyz(:,3),'linear','nearest');
 end
 
@@ -147,7 +146,8 @@ if strcmp(ext,'.asc')
         fid=fopen([path,file],'r');
         
         % Read in header
-        app.ProgressBarButton.Text = 'Reading in elevation data...'; drawnow;
+        msg = 'Reading in elevation data...';
+        progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
         textHeader = textscan(fid, '%s %f', 6);
         
         % Check for optional no data value
@@ -206,7 +206,9 @@ if strcmp(ext,'.asc')
                 
         % Fill in NaN's and transpose/flip
         if any(isnan(z(:)))
-            choice = questdlg('NaNs are found in the elevation data. How do you proceed?','ADMESH','In-paint NaNs','Ignore NaNs','Ignore NaNs');
+            msg = 'NaNs are found in the elevation data. How do you proceed?';
+            choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
             switch choice
                 case 'In-paint NaNs'
                     z = flipud(inpaint_nans(z',4));
@@ -230,64 +232,82 @@ if strcmp(ext,'.asc')
         [x,y] = meshgrid(x,fliplr(y));
                
     catch
-        app.ProgressBarButton.Text = 'Ready'; drawnow;
         return
-    end
-    
-    % Convert coordinates
-    if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
-        app.ProgressBarButton.Text = 'Converting to cartesian coordinate system...'; drawnow;
-        [x,y] = Geo2Meters(x,y,PTS.cpplon,PTS.cpplat);
     end
     
     %-------------------------------------------------------------------------
     % Generate scattered interpolant function for bathymetry
     %--------------------------------------------------------------------------
-    app.ProgressBarButton.Text = 'Creating an interpolant function for the elevation data set...'; drawnow;
+    msg = 'Creating an interpolant function for the elevation data set...';
+    progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
-    switch choice
-        case 'In-paint NaNs'
-            xyzFun = griddedInterpolant(x',y',z','linear','nearest');
-        case 'Ignore NaNs'
-            I = ~isnan(z);
-            xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
-        otherwise
-            xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+    if any(isnan(Z(:)))
+        msg = 'NaNs are found in the elevation data. How do you proceed?';
+        choice2 = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
+
+        switch choice2
+            case 'In-paint NaNs'
+                xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+            case 'Ignore NaNs'
+                I = ~isnan(z);
+                xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
+            otherwise
+                xyzFun = griddedInterpolant(x',y',z','linear','nearest');
+        end
+    else
+        xyzFun = griddedInterpolant(x',y',z','linear','nearest');
     end
         
 end
 
 if any(strcmpi(ext,{'.tiff','.tif'}))
     
-    app.ProgressBarButton.Text = 'Reading in elevation data...'; drawnow;
+    msg = 'Reading in elevation data...';
+    progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     
     Z = imread([path,file]);
     Z = double(Z);
     Z = flipud(Z);
-    Z(Z < -1e20) = nan;
-    Z(Z==0) = nan;
+    Z(Z == -999999) = nan;
     gtinfo = geotiffinfo([path,file]);
     
     ax = gtinfo.BoundingBox;
     x = linspace(ax(1,1),ax(2,1),size(Z,2));
     y = linspace(ax(1,2),ax(2,2),size(Z,1));
     [X,Y] = meshgrid(x,y);
+
+    %-------------------------------------------------------------------------
+    % Generate interpolant function for bathymetry
+    %--------------------------------------------------------------------------
+    msg = 'Creating an interpolant function for the elevation data set...';
+    progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     
-    app.ProgressBarButton.Text = 'Creating an interpolant function for the elevation data set...'; drawnow;
-    I = ~isnan(Z);
-    xyzFun = scatteredInterpolant(X(I),Y(I),Z(I),'nearest','nearest');
-    
+    if any(isnan(Z(:)))
+        msg = 'NaNs are found in the elevation data. How do you proceed?';
+        choice2 = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'In-paint NaNs','Ignore NaNs'},'DefaultOption',2,'Icon','Warning');
+
+        switch choice2
+            case 'In-paint NaNs'
+                xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+            case 'Ignore NaNs'
+                I = ~isnan(z);
+                xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
+            otherwise
+                xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+        end
+    else
+        xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
+    end
+
+    path = strrep(path,pwd,'.'); % Convert to relative path
     ElevationDataFilename = [path,file];
     app.ElevationDataFilename = ElevationDataFilename;
 
 end
 
 xyzFun.Values = -xyzFun.Values;
-app.xyzFun = xyzFun;
-
-% Update GUI data
-% guidata(fig,gui);
-pause(.01)
 
 % Replace data in file by user request
 if strcmp(choice,'Replace') && ~isempty(app.FilePath)
@@ -302,7 +322,10 @@ if strcmp(choice,'Replace') && ~isempty(app.FilePath)
     end
 end
 
-app.ProgressBarButton.Text = 'Ready'; drawnow;
-
+% Convert coordinates if needed
+if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
+    xyzFun = CoordinateConversion(app,xyzFun,'forward',PTS.cpplon,PTS.cpplat);
+end
+app.xyzFun = xyzFun;
 
 end

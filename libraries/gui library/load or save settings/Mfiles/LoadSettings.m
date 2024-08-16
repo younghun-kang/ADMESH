@@ -125,11 +125,8 @@ if isfield(Settings,'SmoothingRMSE')
     app.SmoothingRMSEEditField.Value = Settings.SmoothingRMSE;
 end
 
-% % Update interface
-% PopUpChange(gui.Window,[],'Curvature')
-% PopUpChange(gui.Window,[],'LFS')
-% PopUpChange(gui.Window,[],'Tidal')
-% PopUpChange(gui.Window,[],'Grading')
-% PopUpChange(gui.Window,[],'Elevation')
+if isfield(Settings,'MinDrainageArea')
+    app.MinDrainageArea = Settings.MinDrainageArea;
+end
 
 end

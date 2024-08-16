@@ -25,16 +25,16 @@ function MeshSubDomain(varargin)
 %---------------------------------------------------------------------
 % Get GUI Data
 %---------------------------------------------------------------------
-fig = varargin{1}; gui = % guidata(fig);
+app = varargin{1};
 
 % Assign variables
-PTS     = gui.PTS;
-MESH    = gui.MESH;
+PTS     = app.PTS;
+MESH    = app.MESH;
 
 %---------------------------------------------------------------------
 % Check if any data is loaded
 %---------------------------------------------------------------------
-pH = gui.ViewAxes; % Plot Window handle
+pH = app.UIAxes; % Plot Window handle
 
 % Catch no data loaded
 if isempty(MESH) && isempty(PTS)
@@ -61,25 +61,25 @@ if ~isempty(MESH) && isempty(PTS)
         PTS = triangulation2PTS(MESH);
     end
     
-    gui.PTS = PTS;
+    app.PTS = PTS;
     %% guidata(gui.Window,gui)
     
 end
 
 % Turn off colormap
-SetContourStatus(gui.Window,nan,'off'); drawnow
+SetContourStatus(app,'Off'); drawnow
 
 % If user has a mesh loaded but no PTS strucutre, make one
 if ~isempty(MESH) && ~isempty(PTS)
     
-    choice = questdlg({...
-        ['ADMESH will be using the current edge structure to ',...
+    msg = [...
+        'ADMESH will be using the current edge structure to ',...
         'define the external and internal boundaries. If there ',...
         'is a more refined boundary you would like to use then ',...
         'select from the options below to choose an alternative ',...
-        'boundary to use.']},...
-        'ADMESH','Continue','Load Alternative Boundary','Quit','Continue');
-    
+        'boundary to use.'];
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Continue','Load Alternative Boundary','Quit'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(.005);
     
     switch choice
@@ -91,13 +91,12 @@ if ~isempty(MESH) && ~isempty(PTS)
             
         case 'Load Alternative Boundary'
             
-            choice = questdlg({...
-                ['You have several options to choose from. ',...
+            msg = ['You have several options to choose from. ',...
                 '(1) Load an existing edge structure (.mat) file. ',...
                 '(2) Import boundary from another mesh (.14) file. ',...
-                '(3) Import a polygon from a google earth kml file.']},...
-                'ADMESH','(.mat) File','(.14) File','(.kml File)','(.mat) File');
-            
+                '(3) Import a polygon from a google earth kml file.'];
+            choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'(.mat) File','(.14) File','(.kml) File'},'DefaultOption',1,'Icon','Warning');
             switch choice
                 
                 case '(.mat) File'
@@ -108,7 +107,7 @@ if ~isempty(MESH) && ~isempty(PTS)
                     
                     fileType = '.14';
                     
-                case '(.kml File)'
+                case '(.kml) File'
                     
                     fileType = '.kml';
                     
@@ -118,16 +117,16 @@ if ~isempty(MESH) && ~isempty(PTS)
   
             end
             
-            [gui.PTS,status,xyzIncluded,elev] = ImportTemporaryFile(fileType,MESH);
+            [app.PTS,status,xyzIncluded,elev] = ImportTemporaryFile(fileType,MESH);
             
             if ~status; % gui.sb.setText('Continue?'); return; end
             
-            if xyzIncluded; gui.xyzFun = elev; clear elev; end
+            if xyzIncluded; app.xyzFun = elev; clear elev; end
 
             % update gui data
             % guidata(fig,gui);
             
-            PTS     = gui.PTS;            
+            PTS     = app.PTS;            
             
         case 'Quit'
 
@@ -159,8 +158,6 @@ drawnow
 %---------------------------------------------------------------------
 % Select mesh domain
 %---------------------------------------------------------------------
-gui.sb.ProgressBar.setVisible(true)
-gui.sb.ProgressBar.setIndeterminate(true);
 % gui.sb.setText('Finding elements in selected region...')
 
 % Current mesh 
@@ -182,8 +179,6 @@ ti = vertexAttachments(trep,verts); ti = [ti{:}]';
 % polygon.
 ti = ti(sum(ismember(t(ti,:),verts),2) == 3);
 
-gui.sb.ProgressBar.setVisible(false)
-gui.sb.ProgressBar.setIndeterminate(false);
 % gui.sb.setText('Highlighting elements in selected region...')
 
 %---------------------------------------------------------------------
@@ -208,11 +203,11 @@ while 1
     % gui.sb.setText('Continue?')
     
     % Ask the user if they like their selection
-    choice = questdlg({...
+    msg = [...
         'Select Continue to proceed with the selection you made. '...
-        'Select Re-Try to select a different region.'},...
-        'ADMESH','Continue','Re-Try','Quit','Continue');
-    
+        'Select Re-Try to select a different region.'];
+    choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'Continue','Re-Try','Quit'},'DefaultOption',1,'Icon','Warning');
     drawnow; pause(0.05);  % this innocent line prevents the Matlab hang
     
     switch choice
@@ -228,8 +223,6 @@ while 1
             % Ask user to draw polygon around region
             bpoly = DrawBoundingPolygon(fig,pH,'r');
             
-            gui.sb.ProgressBar.setVisible(true)
-            gui.sb.ProgressBar.setIndeterminate(true);
             % gui.sb.setText('Finding elements in selected region...')
             
             % Find verts in polygon
@@ -244,8 +237,6 @@ while 1
             % polygon.
             ti = ti(sum(ismember(t(ti,:),verts),2) == 3);
             
-            gui.sb.ProgressBar.setVisible(false)
-            gui.sb.ProgressBar.setIndeterminate(false);
             % gui.sb.setText('Highlighting elements in selected region...')
             
         case 'Quit'
@@ -264,8 +255,6 @@ end
 % We want to constraint elements edges on the interior of full mesh
 % determine what edges these are
 %---------------------------------------------------------------------
-gui.sb.ProgressBar.setVisible(true)
-gui.sb.ProgressBar.setIndeterminate(true);
 % gui.sb.setText('Getting boundary information from sub domain...')
 fd = dtFreeBoundary(MESH);    % Free boundary edges of current mesh
 sd = dtFreeBoundary(MESH,ti); % Free boundary edges of sub mesh
@@ -494,17 +483,15 @@ for k = 1:length(tPTS.Constraints)
     
 end
 
-gui.sb.ProgressBar.setVisible(false)
-gui.sb.ProgressBar.setIndeterminate(false);
 
 %---------------------------------------------------------------------
 % Set admesh button to run sub meshing routine
 %---------------------------------------------------------------------
-gui.elementsToRemove = ti;
-gui.subPTS = tPTS;
-% guidata(fig,gui);
-set(gui.Window , 'windowkeypressfcn' , @CancelADMESHSubMesh)
-set(gui.RunAdmeshButton, 'Callback'  , {@ADmeshSubMeshRoutine,fig})
+% gui.elementsToRemove = ti;
+% gui.subPTS = tPTS;
+% % guidata(fig,gui);
+% set(gui.Window , 'windowkeypressfcn' , @CancelADMESHSubMesh)
+% set(gui.RunAdmeshButton, 'Callback'  , {@ADmeshSubMeshRoutine,fig})
 
 uiwait(msgbox(['ADMESH is ready to mesh subdomain. Enter in the appropriate ',...
     'parameters and select ''Run ADMESH''. ADMESH treats your input ',...

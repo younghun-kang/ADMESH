@@ -1,4 +1,4 @@
-function OpenFile(varargin)
+function OpenFile(app)
 % OpenFile - GUI Callback that loads a mesh or edge structure file
 % file.
 %
@@ -22,34 +22,32 @@ function OpenFile(varargin)
 %---------------------------- BEGIN CODE ---------------------------------
 
 %------------------------------------------------------------------------------
-% Get GUI data
-%------------------------------------------------------------------------------
-% gui = % guidata(varargin{1});
-app = varargin{1};
-
-%------------------------------------------------------------------------------
 % Get filename & location from user
 %------------------------------------------------------------------------------
-app.ProgressBarButton.Text = 'Select a file...';
-app.ProgressBarButton.Icon = '';
-
+progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',...
+    'Select a file...','Indeterminate','on');
 % Ask the user to select a file
+f_dummy = figure('Position',[-100 -100 0 0]); %create a dummy figure so that uigetfile doesn't minimize our GUI
 [filename, pathname] = uigetfile(...
     {'*.mat;*.14;*.grd;*.2dm;*.shp','Files (*.mat,*.14,*.grd,*.2dm,*.shp)'},'Select a file');
-
+delete(f_dummy); % delete the dummy figure
+figure(app.UIFigure);
 % If user cancels
 if filename == 0
-    app.ProgressBarButton.Text = 'Ready.';
     return
 end
+close(progdlg);
 
 %------------------------------------------------------------------------------
 % Determine the type of file we're reading in
 %------------------------------------------------------------------------------
 [~,~,ext] = fileparts(filename);
 
-% Turn off colormap
-SetContourStatus(app,'off');
+% Clear window
+status = ClearWindow(app);
+if status == 0
+    return;
+end
 
 switch ext
     
@@ -65,16 +63,24 @@ switch ext
         [app,status] = ReadMat([pathname filename],app);
         
         if status == 0
-            app.ProgressBarButton.Text = 'Ready.'; drawnow;
-            errordlg('There was an error reading in the file.','ADMESH')
+            msg = 'There was an error reading in the file.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
             return
         end
         
         % Plot Boundary
         PlotEdgeStructure(app,.1);
         
-        
-    case '.14'
+        % Convert to cartesian coordinates if needed.
+        [app.PTS,status] = CoordinateConversion(app,app.PTS,'auto');
+
+        if status
+            app.xyzFun = CoordinateConversion(app,app.xyzFun,'forward',app.PTS.cpplon,app.PTS.cpplat);
+            PlotEdgeStructure(app,.1);
+        end
+
+    case {'.14','.grd'}
         
         % Reset domain variables
         app.FilePath   = [pathname filename];
@@ -82,35 +88,24 @@ switch ext
         app.xyzFun     = [];
         app.MESH       = [];
         
-        [app.MESH,app.xyzFun,status] = Read14File([pathname filename],app);
+        [app.MESH,~,status] = Read14File([pathname filename],app);
         
         if status == 0
-            app.ProgressBarButton.Text = 'Ready.'; drawnow;
-            errordlg('There was an error reading in the file.','ADMESH')
+            msg = 'There was an error reading in the file.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
             return
         end
-                
+
         % Plot mesh
         PlotMesh(app,.1);
         
-    case '.grd'
-        
-        % Reset domain variables
-        app.FilePath   = [pathname filename];
-        app.PTS        = [];
-        app.xyzFun     = [];
-        app.MESH       = [];
-        
-        [app.MESH,app.xyzFun,status] = Read14File([pathname filename],app);
-        
-        if status == 0
-            app.ProgressBarButton.Text = 'Ready.'; drawnow;
-            errordlg('There was an error reading in the file.','ADMESH')
-            return
+        % Convert to cartesian coordinates if needed.
+        [app.MESH,status] = CoordinateConversion(app,app.MESH,'auto');
+
+        if status
+            PlotMesh(app,.1);
         end
-        
-        % Plot mesh
-        PlotMesh(app,.1);
 
     case '.2dm'
         
@@ -120,23 +115,23 @@ switch ext
         app.xyzFun     = [];
         app.MESH       = [];
         
-        [app.MESH,app.xyzFun,status] = Read2DM([pathname filename]);
+        [app.MESH,~,status] = Read_2DM([pathname filename]);
         
         if status == 0
-            app.ProgressBarButton.Text = 'Ready.'; drawnow;
-            errordlg('There was an error reading in the file.','ADMESH')
+            msg = 'There was an error reading in the file.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
             return
         end
 
-        app.ProgressBarButton.Text = 'Ready.'; drawnow;
+        % Convert to cartesian coordinates if needed.
+        app.MESH   = CoordinateConversion(app,app.MESH,'auto');
         
     case '.shp'
         
-        choice = questdlg(...
-            'Do you want to save settings?', ...
-            'ADmesh', ...
-            'Yes','No','Yes');
-    
+        msg = 'Do you want to create a .mat file to save ADMESH settings?';
+        choice = uiconfirm(app.UIFigure,msg,'ADMESH',...
+            'Options',{'Yes','No'},'DefaultOption',1,'Icon','question');
         if strcmpi(choice,'yes')
             [file, path] = uiputfile(...
                 {'*.mat','Files (*.mat)'},'Select a file to save settings');
@@ -156,6 +151,7 @@ switch ext
         app.MESH       = [];
         
         [app,status] = ReadShapefile([pathname filename],app);
+        CheckExternalBoundary(app);
         
         if ~isempty(app.FilePath)
             PTS = app.PTS;
@@ -164,14 +160,23 @@ switch ext
         end
         
         if status == 0
-            app.ProgressBarButton.Text = 'Ready.'; drawnow;
-            errordlg('There was an error reading in the file.','ADMESH')
+            msg = 'There was an error reading in the file.';
+            uiconfirm(app.UIFigure,msg,'ADMESH',...
+                'Options',{'OK'},'DefaultOption',1,'Icon','Error');
             return
         end
         
         % Plot Boundary
         PlotEdgeStructure(app,.1);
         
+        % Convert to cartesian coordinates if needed.
+        [app.PTS,status] = CoordinateConversion(app,app.PTS,'auto');
+        
+        if status
+            app.xyzFun = CoordinateConversion(app,app.xyzFun,'forward',app.PTS.cpplon,app.PTS.cpplat);
+            PlotEdgeStructure(app,.1);
+        end
+
 end
 
 end

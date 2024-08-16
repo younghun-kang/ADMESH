@@ -1,4 +1,4 @@
-function Z = CreateElevationGrid(X,Y,xyzFun,Settings,ProgressBar)
+function Z = CreateElevationGrid(X,Y,xyzFun,Settings,UIFigure)
 
 
 %------------------------------------------------------------------------------
@@ -8,8 +8,9 @@ OnOff = strcmp(Settings.B.Status,'On') || strcmp(Settings.T.Status,'On');
 
 if OnOff && ~isempty(xyzFun) % If true, interpolate bathymetry to grid
     
-    ProgressBar.Text = 'Interpolating bathymetry onto background mesh...'; drawnow;
-    
+    msg = 'Interpolating bathymetry onto background mesh...';
+    uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
     %---------------------------------------------------------------------------
     % Interpolate bathymetry (xyzFun) onto background mesh (X,Y)
     %---------------------------------------------------------------------------   

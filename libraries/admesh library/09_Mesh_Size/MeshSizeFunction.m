@@ -1,6 +1,7 @@
-function h = MeshSizeFunction(h0,D,hmax,hmin,g,delta,ProgressBar)
+function h = MeshSizeFunction(h0,D,hmax,hmin,g,delta,UIFigure)
 
-ProgressBar.Text = 'Computing Mesh Size Function...'; drawnow;
+msg = 'Computing Mesh Size Function...';
+uiprogressdlg(UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 %--------------------------------------------------------------------------
 % Initialize Variables

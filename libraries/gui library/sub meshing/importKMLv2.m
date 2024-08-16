@@ -41,8 +41,9 @@ polygon = ~isempty(find(~cellfun(@isempty,strfind(C{1}, '<Polygon>')), 1));
 % Check if file contains polygons and/or lines
 if polygon == 0
     
-    warndlg('To be imported a KML file should contain a polygon.',...
-        'Error');
+    msg = 'To be imported a KML file should contain a polygon.';
+    uiconfirm(app.UIFigure,msg,'ADMESH',...
+        'Options',{'OK'},'DefaultOption',1,'Icon','Error');
     uiStatusBar('Ready')
     status = 0;
     return
