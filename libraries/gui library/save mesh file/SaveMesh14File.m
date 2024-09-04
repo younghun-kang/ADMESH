@@ -1,4 +1,4 @@
-function SaveMesh14File(varargin)
+function SaveMesh14File(app)
 % SaveMesh14File - GUI Callback that saves mesh output by ADmesh
 %
 % Syntax:  SaveMesh14File(varargin)
@@ -19,11 +19,6 @@ function SaveMesh14File(varargin)
 % August 2013; Last revision: 08-August-2013
 
 %--------------------------- BEGIN CODE -----------------------------------
-
-%--------------------------------------------------------------------------
-% Get GUI data
-%--------------------------------------------------------------------------
-app = varargin{1};
 
 %--------------------------------------------------------------------------
 % Assign MESH data struct

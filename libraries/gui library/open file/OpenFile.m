@@ -115,7 +115,7 @@ switch ext
         app.xyzFun     = [];
         app.MESH       = [];
         
-        [app.MESH,~,status] = Read_2DM([pathname filename]);
+        [app.MESH,status] = READ_2DM([pathname filename],app);
         
         if status == 0
             msg = 'There was an error reading in the file.';
@@ -126,6 +126,10 @@ switch ext
 
         % Convert to cartesian coordinates if needed.
         app.MESH   = CoordinateConversion(app,app.MESH,'auto');
+        
+        if status
+            PlotMesh(app,.1);
+        end
         
     case '.shp'
         

@@ -1,4 +1,4 @@
-function mesh = READ_2DM(file)
+function [MESH, status] = READ_2DM(file,app)
 % READ_14 - Reads in domain and it's attributes
 %
 % Syntax:  [PTS, TRI, bathy, IBtype, CPPLAT, CPPLON] = READ_2DM(varargin)
@@ -24,6 +24,7 @@ function mesh = READ_2DM(file)
 % The Ohio State University
 % email address: dww.425@gmail.com
 %------------- BEGIN CODE --------------
+status = 1;
 
 %------------------------------------------------------------------------------
 % Ask the user if there is a bathymetry file to be included
@@ -40,7 +41,7 @@ switch choice
         % Ask the user to select a file
         [bathyfilename, bathypathname] = uigetfile({'*.dat'},'Select a file');
         bathymetry_included = 'Yes';
-    case 'Nope'
+    case 'No'
         bathymetry_included = 'No';
 end
 
@@ -51,7 +52,8 @@ pause(.01)
 %------------------------------------------------------------------------------
 fid=fopen(file, 'r');  % Open file
 
-uiStatusBar('Scanning mesh file...')
+msg = 'Scanning mesh file...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 % Read in file into cell g
 g = textscan(fid,'%s','delimiter','\n'); g = g{1}; % Unpack cell
@@ -62,7 +64,7 @@ fclose(fid); % Close the file
 k = strfind(g, 'MESH'); nHeader = sum(~cellfun('isempty',k));
 
 % Find the total number of all element connectivities
-k = strfind(g, 'E3T '); nElems = sum(~cellfun('isempty',k));
+k = strfind(g, 'TRI '); nElems = sum(~cellfun('isempty',k));
 
 % Find the total number of all element vertices
 k = strfind(g, 'ND '); nVerts = sum(~cellfun('isempty',k));
@@ -70,20 +72,29 @@ k = strfind(g, 'ND '); nVerts = sum(~cellfun('isempty',k));
 % Find the total number of all element strings
 k = strfind(g, 'NS '); nStrings = sum(~cellfun('isempty',k));
 
+if nElems == 0 || nVerts == 0
+    MESH = []; status = 0;
+    return;
+end
+
 % Re-open file and read in data
 fid=fopen(file, 'r');
 
 %------------------------------------------------------------------------------
 % Read in element connectivity
 %------------------------------------------------------------------------------
-uiStatusBar('Reading in element connectivity...')
+msg = 'Reading in element connectivity...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
 C = textscan(fid, '%*s %*f %f %f %f %*d %*[^\n]', nElems,'Headerlines',nHeader);
-mesh.tri = cell2mat(C); clear C
+MESH.ConnectivityList = cell2mat(C); clear C
 
 %------------------------------------------------------------------------------
 % Read in vertices
 %------------------------------------------------------------------------------
-uiStatusBar('Reading in vertices...')
+msg = 'Reading in vertices...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
 C = textscan(fid, '%*s %*d %f %f %f %*[^\n]', nVerts);
 [x,y,z] = deal(C{:}); clear C
 
@@ -92,7 +103,9 @@ if size(y,1) == 1; y = y'; end
 if size(z,1) == 1; z = z'; end
 
 % Read in Open Ocean Boundary Node Strings
-uiStatusBar('Reading in nodal strings...')
+msg = 'Reading in nodal strings...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
 C = textscan(fid, '%*s %d %d %d %d %d %d %d %d %d %d %*[^\n]', nStrings);
 C = cell2mat(C);
 
@@ -102,15 +115,16 @@ fclose(fid); % Close file
 if ~sum(~(x < 180)) && ~sum(~(x > -180)) && ...
         ~sum(~(y <  90)) && ~sum(~(y) >  -90)
     
-    uiStatusBar('Converting to cartesian coordinate system...')
+    msg = 'Converting to cartesian coordinate system...';
+    uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     
     % Convert to XY (meters)
-    [x,y,mesh.cpplon,mesh.cpplat] = Geo2Meters(x,y);
+    [x,y,MESH.cpplon,MESH.cpplat] = Geo2Meters(x,y);
 
 end
 
 % Assign nodal coordinates
-mesh.p = [x y z];
+MESH.Points = [x y z];
 
 C = reshape(C',1,numel(C));
 
@@ -120,19 +134,20 @@ C(C == 0) = []; C = C';
 nNodeStrings = sum(C<0);
 
 % Intitialize PTS Constraint structure
-mesh.Constraints(nNodeStrings,1) = struct('num',[],'type',[],'nodeStr',[],'data',[]);
+if nNodeStrings > 0
+MESH.Constraints(nNodeStrings,1) = struct('num',[],'type',[],'nodeStr',[],'data',[]);
 starting = 1;
 ending = find(C<0,1,'first')-1;
 
 for i = 1:nNodeStrings
     
-    mesh.Constraints(i).type = 'Open Ocean';
+    MESH.Constraints(i).type = 'Open Ocean';
     
-    mesh.Constraints(i).num  = -1;
+    MESH.Constraints(i).num  = -1;
     
-    mesh.Constraints(i).nodeStr = C(starting:ending);
+    MESH.Constraints(i).nodeStr = C(starting:ending);
     
-    %mesh.Constraints(i).xy = [x(C(starting:ending)), y(C(starting:ending))];
+    %MESH.Constraints(i).xy = [x(C(starting:ending)), y(C(starting:ending))];
     
     C(ending + 1) = abs(C(ending + 1));
     
@@ -140,14 +155,16 @@ for i = 1:nNodeStrings
     ending = find(C<0,1,'first')-1;
     
 end
+end
 
 %------------------------------------------------------------------------------
 % Determine node strings
 %------------------------------------------------------------------------------
-uiStatusBar('Detecting boundary segments...')
+msg = 'Detecting boundary segments...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
 
 % Get Mainland and island boundaries
-trep = triangulation(mesh.tri, mesh.p(:,1), mesh.p(:,2)); tf = freeBoundary(trep)';
+trep = triangulation(MESH.ConnectivityList, MESH.Points(:,1), MESH.Points(:,2)); tf = freeBoundary(trep)';
 
 % Assign (x,y) edge segments values
 xBound = x(tf); yBound = y(tf);
@@ -265,7 +282,7 @@ for k = 1:numel(I)
         for i = 1:ns
             
             % Keep end nodes for connectivity
-            ix = ismember(string,mesh.Constraints(i).nodeStr(2:end-1)); 
+            ix = ismember(string,MESH.Constraints(i).nodeStr(2:end-1)); 
 
             % Seperate by a single nan
             string(ix) = nan;
@@ -284,9 +301,9 @@ for k = 1:numel(I)
         for i = 1:numel(C)
             
             % Add mesh constraint attributes for external boundary
-            mesh.Constraints(p+ns).type = 'External Boundary';
-            mesh.Constraints(p+ns).num  = 0;
-            mesh.Constraints(p+ns).nodeStr = C{i};
+            MESH.Constraints(p+ns).type = 'External Boundary';
+            MESH.Constraints(p+ns).num  = 0;
+            MESH.Constraints(p+ns).nodeStr = C{i};
             
             %is = ix(i)+1;
             
@@ -296,17 +313,17 @@ for k = 1:numel(I)
         
     elseif k == 1
         
-        mesh.Constraints(p+ns).type = 'External Boundary';
-        mesh.Constraints(p+ns).num  = 0;
-        mesh.Constraints(p+ns).nodeStr = node(k).Str;
+        MESH.Constraints(p+ns).type = 'External Boundary';
+        MESH.Constraints(p+ns).num  = 0;
+        MESH.Constraints(p+ns).nodeStr = node(k).Str;
         
         p = p + 1;
         
     else
         
-        mesh.Constraints(p+ns).type = 'Internal Boundary';
-        mesh.Constraints(p+ns).num  = 1;
-        mesh.Constraints(p+ns).nodeStr = node(k).Str;
+        MESH.Constraints(p+ns).type = 'Internal Boundary';
+        MESH.Constraints(p+ns).num  = 1;
+        MESH.Constraints(p+ns).nodeStr = node(k).Str;
         
         p = p + 1;
         
@@ -315,8 +332,8 @@ for k = 1:numel(I)
 
 end
 
-if all(mesh.p(:,3) == 1) || all(mesh.p(:,3) == 0)
-    mesh.p = mesh.p(:,[1 2]);
+if all(MESH.Points(:,3) == 1) || all(MESH.Points(:,3) == 0)
+    MESH.Points = MESH.Points(:,[1 2]);
 end
 
 %------------------------------------------------------------------------------
@@ -334,9 +351,7 @@ if strcmp(bathymetry_included, 'Yes')
         uiconfirm(app.UIFigure,msg,'ADMESH',...
             'Options',{'OK'},'DefaultOption',1,'Icon','Error');
 
-        uiStatusBar('Ready')
-
-        mesh = [];
+        MESH = []; status = 0;
         return
     end
     
@@ -350,14 +365,13 @@ if strcmp(bathymetry_included, 'Yes')
         msg = 'The dimensions of bathymetry file do not match the 2dm file.';
         uiconfirm(app.UIFigure,msg,'ADMESH',...
             'Options',{'OK'},'DefaultOption',1,'Icon','Error');
-        
-        uiStatusBar('Ready')
 
-        mesh = [];
+        MESH = []; status = 0;
         return
     end
     
-    uiStatusBar('Reading in bathymetry data...')
+    msg = 'Reading in bathymetry data...';
+    uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
     
     % Read in bathymetry
     try
@@ -368,12 +382,13 @@ if strcmp(bathymetry_included, 'Yes')
         %------------------------------------------------------------------------------
         % Generate scattered interpolant function for bathymetry
         %------------------------------------------------------------------------------
-        uiStatusBar('Creating an interpolant function for the elevation data set...')
+        msg = 'Creating an interpolant function for the elevation data set...';
+        uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
         
         %z = zeros(length(x),1);
         z(:,1) = C{1};
 
-        mesh.p = [mesh.p z];
+        MESH.Points = [MESH.Points z];
         
     catch
         
@@ -381,8 +396,7 @@ if strcmp(bathymetry_included, 'Yes')
         uiconfirm(app.UIFigure,msg,'ADMESH',...
             'Options',{'OK'},'DefaultOption',1,'Icon','Error');
         
-        uiStatusBar('Ready')
-        mesh = [];
+        MESH = []; status = 0;
         return
 
     end
