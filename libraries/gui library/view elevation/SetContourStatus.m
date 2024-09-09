@@ -199,7 +199,7 @@ switch lower(status)
             % Get colormap
             if strcmpi(cmap_name,'land & sea')
 
-                cmap = demcmap(Field,512,flipud(seacolor(256)),landcolor(256));
+                cmap = demcmap(Field,512,seacolor(256),landcolor(256));
                 
             elseif strcmpi(cmap_name,'jet')
 

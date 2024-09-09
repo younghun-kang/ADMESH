@@ -90,7 +90,7 @@ if ~isempty(FluxSegments)
     j = ElevSegments(1);
 
     k = 0;
-    for i = ElevSegments(1)+1:ElevSegments(1)+FluxSegments(1)
+    for i = 1:FluxSegments(1)
         Segment = textscan(fileID,'%f %f %*[^\n]',1);
         MESH.Constraints(i).num = Segment{2};
         MESH.BoundarySegments(i).Type = ...
