@@ -40,8 +40,10 @@ end
 %--------------------------------------------------------------------------
 msg = 'Save Mesh File As....';
 progdlg = uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
-
+f_dummy = figure('Position',[-100 -100 0 0]); % Create a dummy figure so that uigetfile doesn't minimize our GUI
 [file,path] = uiputfile('*.14','Save Mesh File As');
+delete(f_dummy); % Delete the dummy figure
+figure(app.UIFigure); % Put focus on ADMESH app
 
 % If user cancels
 if ~file
@@ -300,6 +302,7 @@ end
 fclose(fid);
 
 close(progdlg);
+figure(app.UIFigure); % Put focus on ADMESH app
 msg = 'Mesh file complete!';
 uiconfirm(app.UIFigure,msg,'ADMESH',...
         'Options',{'OK'},'DefaultOption',1,'Icon','info');
