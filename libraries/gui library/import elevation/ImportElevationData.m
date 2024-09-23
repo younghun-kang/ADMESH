@@ -292,8 +292,8 @@ if any(strcmpi(ext,{'.tiff','.tif'}))
             case 'In-paint NaNs'
                 xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
             case 'Ignore NaNs'
-                I = ~isnan(z);
-                xyzFun = scatteredInterpolant(x(I),y(I),z(I),'nearest','nearest');
+                I = ~isnan(Z);
+                xyzFun = scatteredInterpolant(X(I),Y(I),Z(I),'nearest','nearest');
             otherwise
                 xyzFun = griddedInterpolant(X',Y',Z','linear','nearest');
         end
