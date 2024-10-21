@@ -78,12 +78,19 @@ if ~isempty(app.PTS.cpplon) && ~isempty(app.PTS.cpplat)
 end
 FL = NaNdlm2struct([sx,sy],'Boundary',BP);
 
+% Remove existing constraints extracted by TopoToolbox
 PTS = app.PTS;
+if ~isempty(PTS.Constraints) && isfield(PTS.Constraints(1),'type')
+    type = {PTS.Constraints.type};
+    I = cellfun(@(x) strcmp(x,'TopoToolbox Channel'),type);
+    PTS.Constraints(I) = [];
+end
+% Add new channels to constraints
 n = length(PTS.Constraints);
 for i = 1 : length(FL)
     PTS.Constraints(n+i).num = -18;
     PTS.Constraints(n+i).xy = FL{i};
-    PTS.Constraints(n+i).type = 'line';
+    PTS.Constraints(n+i).type = 'TopoToolbox Channel';
     PTS.Constraints(n+i).data = [];
     PTS.Constraints(n+i).Kappa = [];
 end
