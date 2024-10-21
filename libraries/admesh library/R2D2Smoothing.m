@@ -1,5 +1,9 @@
 function R2D2Smoothing(app,nConnectingLines)
 
+msg = 'Applying R2D2 Smoothing...';
+uiprogressdlg(app.UIFigure,'Title','ADMESH','Message',msg,'Indeterminate','on');
+
+app.xyzFun_old = app.xyzFun;
 
 Constraints = app.PTS.Constraints;
 if isempty(Constraints)
@@ -505,6 +509,11 @@ for iBasin = 1 : nBasins
     
 end
 
-Znew(isnan(Znew)) = -Z(isnan(Znew));
+Znew = -Znew;
+Znew(isnan(Znew)) = Z(isnan(Znew));
 
-app.xyzFun.Values = -Znew;
+app.xyzFun_new = app.xyzFun;
+app.xyzFun_new.Values = Znew;
+app.DEMDropDown.Enable = 'on';
+
+PlotR2D2Result(app);

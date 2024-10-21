@@ -109,7 +109,8 @@ drawnow;
 
 set(h,'tag','landchannel');
 
-app.MainApp.PTS = app.PTS;
-app.MainApp.MinDrainageArea = app.MinDrainageAreaEditField.Value;
+% Update UI
+app.NumR2D2LinesEditField.Enable = 1;
+app.RunR2D2SmoothingButton.Enable = 1;
 
 close(progdlg);
