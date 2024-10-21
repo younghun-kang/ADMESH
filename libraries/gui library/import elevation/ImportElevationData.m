@@ -328,4 +328,7 @@ if isfield(PTS,'cpplon') && ~isempty(PTS.cpplon)
 end
 app.xyzFun = xyzFun;
 
+app.ContoursDropDown.Value = 'Bathy/Topo';
+SetContourStatus(app);
+
 end
