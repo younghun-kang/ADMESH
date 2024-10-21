@@ -22,9 +22,9 @@ if nargin == 2
     [app,per]   = deal(varargin{:});
 %     [PTS,sb,pH] = deal(gui.PTS,[],[]);
     PTS = app.PTS;
-    pH = app.UIAxes;
+    UIAxes = app.UIAxes;
 else
-    [PTS,app,sb,pH,per] = deal(varargin{:}); % NOAA Coastline Input
+    [PTS,app,sb,UIAxes,per] = deal(varargin{:}); % NOAA Coastline Input
 end
 
 %------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ end
 %------------------------------------------------------------------------------
 
 % Get all graphics object handles
-plotItems = get(pH, 'Children'); 
+plotItems = get(UIAxes, 'Children'); 
 
 % Delete all current graphics object handles
 if ~isempty(plotItems); delete(plotItems); colorbar('delete'); end
@@ -63,7 +63,7 @@ YMAX = ymax + offset*per;
 % set(pH,'PlotBoxAspectRatioMode','auto','DataAspectRatioMode','auto')
 
 % Set plot axis limits
-axis(pH,[XMIN XMAX YMIN YMAX])
+axis(UIAxes,[XMIN XMAX YMIN YMAX])
 
 msg = 'Plotting coastline...';
 msg = 'Displaying final mesh...';
@@ -78,25 +78,26 @@ gH          = zeros(numel(PTS.Poly),1);
 % Tell ADMESH where to plot
 %------------------------------------------------------------------------------
 % axes(pH); 
-hold(pH,'on');
+hold(UIAxes,'on');
 
 %------------------------------------------------------------------------------
 % Plot external boundary
 %------------------------------------------------------------------------------
-gH(1) = line(PTS.Poly(1).x , PTS.Poly(1).y,'Parent',pH);
+gH(1) = line(PTS.Poly(1).x , PTS.Poly(1).y,'Parent',UIAxes);
 
 set(gH(1),...
     'color','k',...
     'LineWidth',LineWidth,...
     'tag','Edge Structure',...
     'UserData',{'External Boundary',1})
+drawnow; pause(0.1);
 
 %------------------------------------------------------------------------------
 % Plot internal boundaries
 %------------------------------------------------------------------------------
 for k = 2:length(PTS.Poly)
     
-    gH(k) = line(PTS.Poly(k).x , PTS.Poly(k).y,'Parent',pH);
+    gH(k) = line(PTS.Poly(k).x , PTS.Poly(k).y,'Parent',UIAxes);
     
     set(gH(k),...
         'color',[0 .5 0],...
@@ -128,13 +129,13 @@ end
 %------------------------------------------------------------------------------
 % Plot constraints
 %------------------------------------------------------------------------------
-PlotConstraints(app,pH);
+PlotConstraints(app,UIAxes);
 
 %------------------------------------------------------------------------------
 % Set aspect ratio
 %------------------------------------------------------------------------------
-set(pH,'PlotBoxAspectRatio',[1 1 1],'DataAspectRatio',[1 1 1])
-axis(pH,'tight');
+set(UIAxes,'PlotBoxAspectRatio',[1 1 1],'DataAspectRatio',[1 1 1])
+axis(UIAxes,'tight');
 
 %------------------------------------------------------------------------------
 % Plot distance scale
@@ -147,7 +148,7 @@ drawnow; pause(.005)
 %------------------------------------------------------------------------------
 % Save limits
 %------------------------------------------------------------------------------
-app.xLimits = get(pH,'xlim');    % x-axis limits
-app.yLimits = get(pH,'ylim');    % y-axis limits
+app.xLimits = get(UIAxes,'xlim');    % x-axis limits
+app.yLimits = get(UIAxes,'ylim');    % y-axis limits
 
 end
